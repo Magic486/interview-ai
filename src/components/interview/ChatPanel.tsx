@@ -303,6 +303,11 @@ function MarkdownMessage({ content }: { content: string }) {
       return;
     }
 
+    if (/^`{3,}\w*$/.test(line)) {
+      flushList();
+      return;
+    }
+
     const listMatch = line.match(/^[-*]\s+(.+)$/);
     if (listMatch) {
       listItems.push(listMatch[1]);

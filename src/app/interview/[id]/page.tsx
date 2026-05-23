@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { COMPANY_FLOWS } from "@/config/interview-stages";
 import { loadInterviewContext } from "@/lib/interview-context";
-import { AlertTriangle, Clock, StopCircle } from "lucide-react";
+import { AlertTriangle, Clock } from "lucide-react";
 import type { InterviewConfig, InterviewMode } from "@/types";
 
 export default function InterviewPage() {
@@ -36,8 +36,13 @@ export default function InterviewPage() {
     searchParams.get("stress") === "true"
   );
   const [showEndDialog, setShowEndDialog] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [pendingExitHref, setPendingExitHref] = useState<string | null>(null);
   const [endReason, setEndReason] = useState<"manual" | "timeout">("manual");
   const chatPanelRef = useRef<ChatPanelHandle>(null);
+  const allowExitRef = useRef(false);
+  const exitWasBackRef = useRef(false);
+  const exitGuardKeyRef = useRef<string | null>(null);
 
   const flow = COMPANY_FLOWS[company] ?? COMPANY_FLOWS.bytedance;
   const requestedStageIndex = Number(searchParams.get("stage") ?? 0);
@@ -64,7 +69,53 @@ export default function InterviewPage() {
     setShowEndDialog(true);
   }, []);
 
+  const cancelExit = useCallback(() => {
+    setShowExitDialog(false);
+    setPendingExitHref(null);
+    if (exitWasBackRef.current) {
+      window.history.pushState(
+        { interviewExitGuard: exitGuardKeyRef.current },
+        "",
+        window.location.href
+      );
+    }
+    exitWasBackRef.current = false;
+  }, []);
+
+  const confirmExit = useCallback(() => {
+    allowExitRef.current = true;
+    setShowExitDialog(false);
+
+    if (pendingExitHref) {
+      router.push(pendingExitHref);
+      return;
+    }
+
+    const exitFromUrl = window.location.href;
+    let attempts = 0;
+    const maxAttempts = 6;
+
+    window.history.back();
+
+    const skipSamePageGuards = window.setInterval(() => {
+      if (window.location.href !== exitFromUrl) {
+        window.clearInterval(skipSamePageGuards);
+        return;
+      }
+
+      attempts += 1;
+      if (attempts >= maxAttempts) {
+        window.clearInterval(skipSamePageGuards);
+        router.push("/");
+        return;
+      }
+
+      window.history.back();
+    }, 120);
+  }, [pendingExitHref, router]);
+
   const confirmEndInterview = useCallback(() => {
+    allowExitRef.current = true;
     setShowEndDialog(false);
     const reviewParams = new URLSearchParams({
       mode,
@@ -82,6 +133,68 @@ export default function InterviewPage() {
   const handleToggleStress = useCallback(() => {
     setStressMode((prev) => !prev);
   }, []);
+
+  useEffect(() => {
+    const guardKey = `interview-exit:${interviewId}:${window.location.pathname}${window.location.search}`;
+    exitGuardKeyRef.current = guardKey;
+
+    if (window.history.state?.interviewExitGuard !== guardKey) {
+      window.history.replaceState(
+        { ...(window.history.state ?? {}), interviewExitBase: guardKey },
+        "",
+        window.location.href
+      );
+      window.history.pushState(
+        { interviewExitGuard: guardKey },
+        "",
+        window.location.href
+      );
+    }
+
+    const handlePopState = () => {
+      if (allowExitRef.current) return;
+      exitWasBackRef.current = true;
+      setPendingExitHref(null);
+      setShowExitDialog(true);
+    };
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (allowExitRef.current) return;
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const target = event.target as HTMLElement | null;
+      const anchor = target?.closest("a[href]") as HTMLAnchorElement | null;
+      if (!anchor || anchor.target || anchor.hasAttribute("download")) return;
+
+      const url = new URL(anchor.href);
+      if (url.origin !== window.location.origin) return;
+      if (url.pathname === window.location.pathname && url.search === window.location.search) {
+        return;
+      }
+
+      event.preventDefault();
+      exitWasBackRef.current = false;
+      setPendingExitHref(`${url.pathname}${url.search}${url.hash}`);
+      setShowExitDialog(true);
+    };
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (allowExitRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    document.addEventListener("click", handleDocumentClick, true);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      document.removeEventListener("click", handleDocumentClick, true);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [interviewId]);
 
   const config: InterviewConfig & { currentStage: number } = {
     role,
@@ -129,15 +242,6 @@ export default function InterviewPage() {
               paused={showEndDialog}
               onExpire={handleTimerExpire}
             />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleEndInterview}
-              className="h-8 gap-1"
-            >
-              <StopCircle className="h-4 w-4" />
-              提前结束
-            </Button>
             <div className="text-sm text-muted-foreground">
               当前模块 · {currentStage?.name}
             </div>
@@ -192,6 +296,37 @@ export default function InterviewPage() {
             </Button>
             <Button onClick={confirmEndInterview}>
               结束并查看复盘
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showExitDialog} onOpenChange={(open) => {
+        if (open) {
+          setShowExitDialog(true);
+          return;
+        }
+
+        if (allowExitRef.current) {
+          setShowExitDialog(false);
+          return;
+        }
+
+        cancelExit();
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认离开当前面试？</DialogTitle>
+            <DialogDescription>
+              当前面试还在进行中，离开后本页对话可能无法继续。确认要退出吗？
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelExit}>
+              继续面试
+            </Button>
+            <Button variant="destructive" onClick={confirmExit}>
+              确认离开
             </Button>
           </DialogFooter>
         </DialogContent>

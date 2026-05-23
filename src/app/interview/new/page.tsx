@@ -166,9 +166,6 @@ export default function NewInterviewPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  本次只进行所选部分，不再自动推进完整流程。
-                </p>
               </div>
             </CardContent>
           </Card>
