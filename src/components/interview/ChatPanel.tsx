@@ -282,6 +282,8 @@ function MarkdownMessage({ content }: { content: string }) {
   const lines = content.split(/\r?\n/);
   const blocks: React.ReactNode[] = [];
   let listItems: string[] = [];
+  let codeLines: string[] = [];
+  let inCodeBlock = false;
 
   const flushList = () => {
     if (listItems.length === 0) return;
@@ -295,15 +297,36 @@ function MarkdownMessage({ content }: { content: string }) {
     listItems = [];
   };
 
+  const flushCode = () => {
+    if (codeLines.length === 0) return;
+    blocks.push(
+      <pre key={`code-${blocks.length}`} className="my-2 overflow-x-auto rounded-lg bg-muted p-3 text-xs">
+        <code>{codeLines.join("\n")}</code>
+      </pre>
+    );
+    codeLines = [];
+  };
+
   lines.forEach((rawLine, index) => {
     const line = rawLine.trim();
 
-    if (!line) {
-      flushList();
+    if (inCodeBlock) {
+      if (/^`{3,}$/.test(line)) {
+        inCodeBlock = false;
+        flushCode();
+      } else {
+        codeLines.push(rawLine);
+      }
       return;
     }
 
-    if (/^`{3,}\w*$/.test(line)) {
+    if (/^`{3,}/.test(line)) {
+      flushList();
+      inCodeBlock = true;
+      return;
+    }
+
+    if (!line) {
       flushList();
       return;
     }
@@ -338,6 +361,7 @@ function MarkdownMessage({ content }: { content: string }) {
   });
 
   flushList();
+  flushCode();
 
   return <div className="space-y-1">{blocks}</div>;
 }

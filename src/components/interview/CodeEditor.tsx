@@ -11,12 +11,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Code2, Play } from "lucide-react";
+import { useTheme } from "next-themes";
 
 const LANGUAGES = [
   { value: "javascript", label: "JavaScript" },
+  { value: "typescript", label: "TypeScript" },
   { value: "python", label: "Python" },
   { value: "java", label: "Java" },
   { value: "go", label: "Go" },
+  { value: "cpp", label: "C++" },
+  { value: "c", label: "C" },
+  { value: "rust", label: "Rust" },
+  { value: "csharp", label: "C#" },
+  { value: "kotlin", label: "Kotlin" },
+  { value: "swift", label: "Swift" },
+  { value: "ruby", label: "Ruby" },
+  { value: "php", label: "PHP" },
+  { value: "sql", label: "SQL" },
+  { value: "html", label: "HTML" },
+  { value: "css", label: "CSS" },
 ];
 
 interface CodeEditorProps {
@@ -29,6 +42,7 @@ export function CodeEditor({ visible, onLanguageChange, onSubmit }: CodeEditorPr
   const [language, setLanguage] = useState("javascript");
   const [code, setCode] = useState("");
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
+  const { theme } = useTheme();
 
   if (!visible) return null;
 
@@ -46,6 +60,8 @@ export function CodeEditor({ visible, onLanguageChange, onSubmit }: CodeEditorPr
     if (!code.trim()) return;
     onSubmit(code, language);
   };
+
+  const editorTheme = theme === "dark" ? "vs-dark" : "vs";
 
   return (
     <div className="flex flex-col h-full">
@@ -75,7 +91,7 @@ export function CodeEditor({ visible, onLanguageChange, onSubmit }: CodeEditorPr
           value={code}
           onChange={(value) => setCode(value || "")}
           onMount={handleEditorMount}
-          theme="vs-dark"
+          theme={editorTheme}
           options={{
             minimap: { enabled: false },
             fontSize: 13,

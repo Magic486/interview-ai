@@ -58,6 +58,11 @@ function ensureQuestionTransform() {
       TextStreamPart<typeof interviewTools>
     >({
       transform(part, controller) {
+        if (part.type === "text-start") {
+          text = "";
+          lastTextId = part.id;
+        }
+
         if (part.type === "text-delta") {
           text += part.text;
           lastTextId = part.id;
