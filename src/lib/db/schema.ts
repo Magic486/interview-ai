@@ -1,88 +1,63 @@
-import {
-  pgTable,
-  uuid,
-  text,
-  integer,
-  boolean,
-  jsonb,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
-export const resumes = pgTable("resumes", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull(),
+export const resumes = sqliteTable("resumes", {
+  id: text("id").primaryKey(),
+  userId: text("user_id"),
   rawText: text("raw_text").notNull(),
-  parsedSkills: jsonb("parsed_skills").$type<
-    { name: string; level: string; years: number }[]
-  >(),
-  parsedExperience: jsonb("parsed_experience").$type<
-    { title: string; company: string; description: string; techStack: string[] }[]
-  >(),
+  parsedSkills: text("parsed_skills"),
+  parsedExperience: text("parsed_experience"),
   education: text("education"),
   fileUrl: text("file_url"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const interviews = pgTable("interviews", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull(),
-  resumeId: uuid("resume_id").references(() => resumes.id),
+export const interviews = sqliteTable("interviews", {
+  id: text("id").primaryKey(),
+  userId: text("user_id"),
+  resumeId: text("resume_id").references(() => resumes.id),
   role: text("role").notNull(),
   companyType: text("company_type").notNull(),
-  mode: text("mode").$type<"normal" | "reversed">().notNull().default("normal"),
-  stressMode: boolean("stress_mode").notNull().default(false),
-  status: text("status")
-    .$type<"in_progress" | "completed" | "abandoned">()
-    .notNull()
-    .default("in_progress"),
+  mode: text("mode").notNull().default("normal"),
+  stressMode: integer("stress_mode", { mode: "boolean" }).notNull().default(false),
+  status: text("status").notNull().default("in_progress"),
   currentStage: text("current_stage").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const messages = pgTable("messages", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  interviewId: uuid("interview_id")
+export const messages = sqliteTable("messages", {
+  id: text("id").primaryKey(),
+  interviewId: text("interview_id")
     .references(() => interviews.id, { onDelete: "cascade" })
     .notNull(),
-  role: text("role").$type<"interviewer" | "candidate" | "system">().notNull(),
+  role: text("role").notNull(),
   content: text("content").notNull(),
   stage: text("stage").notNull(),
   codeSnippet: text("code_snippet"),
   score: integer("score"),
   feedback: text("feedback"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const reviews = pgTable("reviews", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  interviewId: uuid("interview_id")
+export const reviews = sqliteTable("reviews", {
+  id: text("id").primaryKey(),
+  interviewId: text("interview_id")
     .references(() => interviews.id, { onDelete: "cascade" })
     .unique()
     .notNull(),
   overallScore: integer("overall_score").notNull(),
-  dimensionScores: jsonb("dimension_scores").notNull(),
-  strengths: jsonb("strengths").$type<
-    { point: string; example: string }[]
-  >(),
-  weaknesses: jsonb("weaknesses").$type<
-    { point: string; example: string; suggestion: string }[]
-  >(),
-  perQuestionAnalysis: jsonb("per_question_analysis").$type<
-    { question: string; yourAnswer: string; score: number; strengths: string[]; weaknesses: string[]; suggestedAnswer: string }[]
-  >(),
-  improvementPlan: jsonb("improvement_plan").$type<
-    { area: string; action: string; resources: string[] }[]
-  >(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  dimensionScores: text("dimension_scores").notNull(),
+  strengths: text("strengths"),
+  weaknesses: text("weaknesses"),
+  perQuestionAnalysis: text("per_question_analysis"),
+  improvementPlan: text("improvement_plan"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const learningPaths = pgTable("learning_paths", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull(),
+export const learningPaths = sqliteTable("learning_paths", {
+  id: text("id").primaryKey(),
+  userId: text("user_id"),
   targetRole: text("target_role").notNull(),
-  gapAnalysis: jsonb("gap_analysis").notNull(),
-  steps: jsonb("steps").$type<
-    { order: number; title: string; description: string; resources: { name: string; url: string; type: string }[]; estimatedDuration: string }[]
-  >(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  gapAnalysis: text("gap_analysis").notNull(),
+  steps: text("steps"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });

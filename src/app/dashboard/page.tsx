@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Calendar } from "lucide-react";
@@ -10,7 +12,13 @@ const mockInterviews = [
   { id: "3", role: "后端开发工程师", company: "腾讯", date: "2026-05-20", score: 72, status: "completed" },
 ];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-8">
