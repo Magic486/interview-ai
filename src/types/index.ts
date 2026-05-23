@@ -177,6 +177,7 @@ export interface StageConfig {
 
 export interface CompanyFlow {
   name: string;
+  style: string;
   stages: StageConfig[];
   stressAvailable: InterviewStage[];
 }

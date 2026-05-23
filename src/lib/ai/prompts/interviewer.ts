@@ -1,5 +1,6 @@
 export function getInterviewerSystemPrompt(config: {
   company: string;
+  style: string;
   role: string;
   stage: { name: string; focus: string; topics: string; duration: number };
   stressMode: boolean;
@@ -17,6 +18,7 @@ export function getInterviewerSystemPrompt(config: {
 
 ## 面试要求
 - 严格遵循${config.company}的面试风格，保持专业但不生硬
+- ${config.company}的面试特点：${config.style}
 - 逐步深入追问，一次只问一个问题，不要一次抛出多个问题
 - 在候选人回答模糊或不够深入时要求进一步澄清
 - 每题结束后调用 evaluateAnswer 给出即时评分

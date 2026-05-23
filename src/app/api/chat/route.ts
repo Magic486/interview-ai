@@ -83,6 +83,7 @@ export async function POST(req: Request) {
           })
         : getInterviewerSystemPrompt({
             company: company.name,
+            style: company.style,
             role: config?.role ?? "",
             stage: {
               name: stage.name,
