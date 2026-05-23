@@ -54,8 +54,11 @@ export const evaluateAnswerSchema = z.object({
     .enum(["technical", "communication", "logic", "depth", "coding"])
     .describe("评分维度"),
   brief: z.string().describe("简短点评（一句话）"),
-  shouldDigDeeper: z.boolean().optional().describe("是否需要继续深入追问该知识点"),
-  nextFocus: z.string().optional().describe("如果要深入追问，重点关注什么方面"),
+  suggestedAction: z
+    .enum(["ask_code", "ask_approach", "dig_deeper", "move_on", "new_topic"])
+    .describe(
+      "建议下一步动作：ask_code=让候选人写代码, ask_approach=让候选人口述思路/伪代码, dig_deeper=追问同一题更深层, move_on=该题考察充分换下一题, new_topic=换不同方向的全新话题"
+    ),
 });
 
 export const stressModeSchema = z.object({
@@ -97,16 +100,20 @@ export const interviewTools = {
   }),
   evaluateAnswer: tool({
     description:
-      "在候选人回答完每个问题后，对该回答进行即时评分。每题必须调用一次。返回值包含评分结果和建议的下一步行动。",
+      "在候选人回答完每个问题后，对该回答进行即时评分。每题必须调用一次。返回值包含评分结果和建议的下一步行动（suggestedAction）。你必须根据 suggestedAction 自主决定是写代码、问思路、深挖、换题还是换话题。",
     inputSchema: evaluateAnswerSchema,
-    execute: async ({ score, dimension, brief, shouldDigDeeper, nextFocus }) => ({
+    execute: async ({ score, dimension, brief, suggestedAction }) => ({
       score,
       dimension,
       evaluation: brief,
-      recommendation: shouldDigDeeper
-        ? `需要深入追问${nextFocus || dimension}方面，候选人回答还不够充分`
-        : `该维度考核充分，可以进入下一个考察点`,
-      nextAction: shouldDigDeeper ? "dig_deeper" : "move_on",
+      suggestedAction,
+      guidance: {
+        ask_code: "让候选人用指定语言写出完整代码实现",
+        ask_approach: "让候选人口述思路、伪代码或设计要点，暂不写代码",
+        dig_deeper: "同一道题继续深挖——追问边界条件/底层原理/线上场景/复杂度优化",
+        move_on: "此题已考察充分，从题库选一道和当前阶段匹配的新题继续面试",
+        new_topic: "当前方向已覆盖，从题库选一道完全不同方向的新题拓宽面试广度",
+      }[suggestedAction],
     }),
   }),
   stressMode: tool({
