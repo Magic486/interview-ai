@@ -147,6 +147,15 @@
   }
 }
 
-.cl-internal-b3fm6y {
+/* 隐藏 Clerk 开发模式悬浮标记 */
+[class*="cl-"]:has(a[href*="clerk.com"]) {
+  display: none !important;
+}
+/* 也遮盖可能直接以 a 标签存在的链接 */
+a[href*="clerk.com"] {
+  display: none !important;
+}
+/* 兜底：隐藏所有固定定位且包含 clerk 链接的元素 */
+div[style*="fixed"]:has(a[href*="clerk.com"]) {
   display: none !important;
 }
