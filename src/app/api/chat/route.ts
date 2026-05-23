@@ -90,11 +90,10 @@ function ensureQuestionTransform() {
               !/[？?]/.test(text) &&
               !/结束面试|进入复盘|面试到这里|可以结束/i.test(text)
             ) {
-              controller.enqueue({
-                type: "text-delta",
-                id: lastTextId,
-                text: "\n\n我们换个话题——请回答下一题：",
-              });
+              const qId = lastTextId + "-q";
+              controller.enqueue({ type: "text-start", id: qId });
+              controller.enqueue({ type: "text-delta", id: qId, text: "\n\n我们换个话题——请回答下一题：" } as TextStreamPart<typeof interviewTools>);
+              controller.enqueue({ type: "text-end", id: qId });
             }
             pendingCheck = false;
           }
