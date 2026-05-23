@@ -182,6 +182,7 @@ export default function StudentPathPage() {
               <ProgressTracker
                 roadmap={state.roadmap}
                 career={state.selectedCareer}
+                resources={state.resources}
                 completedMilestones={state.completedMilestones}
                 completedPhases={state.completedPhases}
                 onToggleMilestone={toggleMilestone}
