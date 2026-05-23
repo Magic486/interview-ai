@@ -106,11 +106,33 @@ export interface ParsedResume {
 
 // ========== 职业规划相关 ==========
 
+export interface CareerUserProfile {
+  educationStage: string;
+  major: string;
+  experienceLevel: string;
+  currentStatus: string;
+  targetTimeline: string;
+  targetCity?: string;
+  preference: string;
+  dailyStudyTime: string;
+  selfRatedStrengths: string;
+  painPoints: string;
+  constraints: string;
+}
+
 export interface SkillGap {
   currentSkills: string[];
   requiredSkills: string[];
   missingSkills: string[];
   matchRate: number;
+}
+
+export interface CareerDiagnosis {
+  coreProblem: string;
+  evidence: string[];
+  blindSpots: string[];
+  quickWins: string[];
+  riskLevel: "low" | "medium" | "high";
 }
 
 export interface LearningResource {

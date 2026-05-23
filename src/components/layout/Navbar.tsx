@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { GraduationCap } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { GraduationCap, UserRound } from "lucide-react";
 
 export function Navbar() {
   return (
@@ -24,7 +24,13 @@ export function Navbar() {
               职业规划
             </Button>
           </Link>
-          <UserButton />
+          <Link href="/profile" aria-label="个人信息">
+            <Avatar className="transition-colors hover:bg-muted">
+              <AvatarFallback>
+                <UserRound className="h-4 w-4" />
+              </AvatarFallback>
+            </Avatar>
+          </Link>
         </nav>
       </div>
     </header>
