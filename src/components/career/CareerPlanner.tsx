@@ -9,6 +9,7 @@ import { ResumePreview } from "@/components/resume/ResumePreview";
 import { ResumeUploader } from "@/components/resume/ResumeUploader";
 import { SkillGapChart } from "@/components/career/SkillGapChart";
 import { LearningPath } from "@/components/career/LearningPath";
+import { CareerExportButtons } from "@/components/career/CareerExportButtons";
 import {
   EMPTY_CAREER_PROFILE,
   isCareerProfileComplete,
@@ -195,7 +196,7 @@ export function CareerPlanner() {
             {isReading ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                正在读取简历内容
+                 正在读取简历内容
               </div>
             ) : null}
           </CardContent>
@@ -250,7 +251,20 @@ export function CareerPlanner() {
       ) : null}
 
       {analysis ? (
-        <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold">分析结果</h2>
+            <CareerExportButtons
+              data={{
+                resume: analysis.resume,
+                diagnosis: analysis.diagnosis,
+                gap: analysis.gap,
+                path: analysis.path,
+                roleLabel: selectedRoleLabel,
+              }}
+            />
+          </div>
+          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <Card>
             <CardHeader>
               <CardTitle>简历解析</CardTitle>
@@ -305,6 +319,7 @@ export function CareerPlanner() {
               <LearningPath steps={analysis.path.steps} />
             </CardContent>
           </Card>
+        </div>
         </div>
       ) : null}
     </div>

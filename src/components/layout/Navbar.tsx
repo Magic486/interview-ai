@@ -35,11 +35,6 @@ export function Navbar() {
           <span className="gradient-text">Interview.ai</span>
         </Link>
         <nav className="flex items-center gap-1">
-          <Link href="/career">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground transition-colors">
-              职业规划
-            </Button>
-          </Link>
           <Button
             variant="ghost"
             size="icon"

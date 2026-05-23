@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { generateReview, getReview } from "@/lib/ai/actions";
+import { ReviewExportButtons } from "@/components/review/ReviewExportButtons";
 import type { DimensionScores, ReviewReport } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -107,12 +108,15 @@ export default async function ReviewPage({
               : "基于本次面试对话，评估通过概率、关键短板和下一步提升路径"}
           </p>
         </div>
-        <Link href="/interview/new">
-          <Button variant="outline" className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            再练一次
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <ReviewExportButtons report={report} />
+          <Link href="/interview/new">
+            <Button variant="outline" className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              再练一次
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <section className="grid gap-4 md:grid-cols-[1.1fr_1.9fr]">
