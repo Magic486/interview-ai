@@ -1,5 +1,45 @@
 import { z } from "zod";
 import { tool } from "ai";
+import { INTERVIEW_QUESTIONS, type InterviewQuestion } from "@/config/interview-questions";
+
+function searchQuestions(params: {
+  stage: string;
+  company?: string;
+  difficulty?: string;
+  tags?: string[];
+  limit?: number;
+}) {
+  let results: InterviewQuestion[] = [...INTERVIEW_QUESTIONS];
+
+  if (params.stage && params.stage !== "any") {
+    results = results.filter((q) => q.stage === params.stage);
+  }
+  if (params.company) {
+    results = results.filter((q) => !q.company || q.company.includes(params.company!));
+  }
+  if (params.difficulty) {
+    results = results.filter((q) => q.difficulty === params.difficulty);
+  }
+  if (params.tags && params.tags.length > 0) {
+    results = results.filter((q) =>
+      params.tags!.some((t) => q.tags.some((qt) => qt.includes(t)))
+    );
+  }
+  if (params.company) {
+    const withCompany = results.filter((q) => q.company);
+    const withoutCompany = results.filter((q) => !q.company);
+    results = [...withCompany, ...withoutCompany];
+  }
+
+  return results.slice(0, params.limit ?? 5).map((q) => ({
+    id: q.id,
+    title: q.title,
+    content: q.content,
+    difficulty: q.difficulty,
+    tags: q.tags,
+    company: q.company || "通用",
+  }));
+}
 
 export const advanceStageSchema = z.object({
   nextStage: z
@@ -22,7 +62,27 @@ export const stressModeSchema = z.object({
   enabled: z.boolean().describe("是否开启压力面模式"),
 });
 
+export const searchInterviewKnowledgeSchema = z.object({
+  stage: z
+    .enum(["algorithm", "project", "cross", "hr", "any"])
+    .describe("面试阶段，'any' 表示不限制"),
+  company: z.string().optional().describe("公司名称筛选，不传则返回所有公司"),
+  difficulty: z.enum(["easy", "medium", "hard"]).optional().describe("难度筛选"),
+  tags: z.array(z.string()).optional().describe("知识点标签筛选"),
+  limit: z.number().min(1).max(10).optional().describe("返回题目数量，默认5"),
+});
+
 export const interviewTools = {
+  searchInterviewKnowledge: tool({
+    description:
+      "从海量真实面试题库中检索题目。在开始新面试或需要新题目时调用。返回题目标题、完整题目内容、难度、标签和来源公司。优先使用和当前公司匹配的题目。",
+    inputSchema: searchInterviewKnowledgeSchema,
+    execute: async (params) => ({
+      questions: searchQuestions(params),
+      total: searchQuestions({ ...params, limit: 99 }).length,
+      hint: "请从中选择 1-2 道最适合当前候选人的题目。出题时保持原题目核心，可结合候选人背景微调难度和措辞。",
+    }),
+  }),
   advanceStage: tool({
     description:
       "当当前阶段面试考察充分、可以结束时，推进到下一阶段。如果已经是最后一阶段，nextStage 设为 'completed'。调用后会返回新阶段信息，你可以据此调整面试内容。",
