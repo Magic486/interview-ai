@@ -128,3 +128,8 @@
     @apply font-sans;
   }
 }
+
+/* 隐藏 Clerk 开发模式悬浮标记 */
+.cl-internal-b3fm6y {
+  display: none !important;
+}

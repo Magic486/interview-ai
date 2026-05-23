@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Mic, BarChart3, RefreshCw, Briefcase, GraduationCap } from "lucide-react";
+import { Mic, BarChart3, RefreshCw, Briefcase, GraduationCap } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -29,13 +29,13 @@ export default function HomePage() {
           <Link href="/career">
             <Button size="lg" variant="outline" className="gap-2">
               <Briefcase className="h-5 w-5" />
-              职业规划
+              求职规划
             </Button>
           </Link>
           <Link href="/student">
             <Button size="lg" variant="outline" className="gap-2">
               <GraduationCap className="h-5 w-5" />
-              大学生规划
+              大学生学习路径规划
             </Button>
           </Link>
         </div>
@@ -74,18 +74,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-16 text-center px-4">
-        <h2 className="text-2xl font-semibold mb-4">
-          准备好了吗？开始你的第一场模拟面试
-        </h2>
-        <Link href="/interview/new">
-          <Button size="lg" className="gap-2">
-            立即开始
-            <ArrowRight className="h-5 w-5" />
-          </Button>
-        </Link>
-      </section>
+
     </div>
   );
 }
