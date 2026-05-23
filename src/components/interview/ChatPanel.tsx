@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { UIMessage } from "ai";
@@ -11,6 +11,10 @@ import { cn } from "@/lib/utils";
 import { Send, Mic, MicOff, Loader2, User, Bot, AlertCircle } from "lucide-react";
 import type { InterviewConfig } from "@/types";
 
+export interface ChatPanelHandle {
+  sendMessage: (text: string) => void;
+}
+
 interface ChatPanelProps {
   interviewId: string;
   config: InterviewConfig & { currentStage?: number };
@@ -19,14 +23,29 @@ interface ChatPanelProps {
 
 const INIT_TRIGGER = "__INTERVIEW_START__";
 
+function formatError(err: Error | undefined): string {
+  if (!err) return "AI 服务连接失败，请检查 API Key";
+  const msg = err.message;
+  if (!msg) return "AI 服务连接失败，请检查 API Key";
+  // 如果服务端返回的是 JSON 格式错误，提取真实错误信息
+  try {
+    const parsed = JSON.parse(msg);
+    return parsed.error || parsed.message || msg;
+  } catch {
+    return msg;
+  }
+}
+
 function getMessageText(msg: UIMessage): string {
-  return msg.parts
-    .filter((p): p is { type: "text"; text: string } => p.type === "text")
-    .map((p) => p.text)
+  const parts = msg.parts as Array<{ type: string; text?: string; delta?: string }>;
+  return parts
+    .filter((p) => p.type === "text" || p.type === "text-delta")
+    .map((p) => p.text ?? p.delta ?? "")
     .join("");
 }
 
-export function ChatPanel({ interviewId, config, mode }: ChatPanelProps) {
+export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
+  function ChatPanel({ interviewId, config, mode }, ref) {
   const [listening, setListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -36,7 +55,8 @@ export function ChatPanel({ interviewId, config, mode }: ChatPanelProps) {
         api: "/api/chat",
         body: { interviewId, config, mode },
       }),
-    [interviewId, config, mode]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [interviewId, mode]
   );
 
   const { messages, sendMessage, status, error } = useChat({
@@ -45,6 +65,12 @@ export function ChatPanel({ interviewId, config, mode }: ChatPanelProps) {
       console.error("Chat error:", err);
     },
   });
+
+  useImperativeHandle(ref, () => ({
+    sendMessage: (text: string) => {
+      sendMessage({ text });
+    },
+  }), [sendMessage]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -120,9 +146,7 @@ export function ChatPanel({ interviewId, config, mode }: ChatPanelProps) {
         {error && (
           <div className="flex items-center gap-2 text-destructive text-sm p-3 bg-destructive/10 rounded-lg">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>
-              {error.message || "AI 服务连接失败，请检查模型配置、网络或 API Key"}
-            </span>
+            <span>{formatError(error)}</span>
           </div>
         )}
 
@@ -203,7 +227,7 @@ export function ChatPanel({ interviewId, config, mode }: ChatPanelProps) {
       </div>
     </div>
   );
-}
+});
 
 function MessageBubble({
   role,
@@ -244,94 +268,8 @@ function MessageBubble({
           isInterviewer ? "bg-muted/50" : "bg-primary/5 border-primary/20"
         )}
       >
-        {isInterviewer ? (
-          <MarkdownMessage content={content} />
-        ) : (
-          <p className="whitespace-pre-wrap">{content}</p>
-        )}
+        <p className="whitespace-pre-wrap">{content}</p>
       </Card>
     </div>
   );
-}
-
-function MarkdownMessage({ content }: { content: string }) {
-  const lines = content.split(/\r?\n/);
-  const blocks: React.ReactNode[] = [];
-  let listItems: string[] = [];
-
-  const flushList = () => {
-    if (listItems.length === 0) return;
-    blocks.push(
-      <ul key={`list-${blocks.length}`} className="my-2 list-disc space-y-1 pl-5">
-        {listItems.map((item, index) => (
-          <li key={`${item}-${index}`}>{renderInlineMarkdown(item)}</li>
-        ))}
-      </ul>
-    );
-    listItems = [];
-  };
-
-  lines.forEach((rawLine, index) => {
-    const line = rawLine.trim();
-
-    if (!line) {
-      flushList();
-      return;
-    }
-
-    const listMatch = line.match(/^[-*]\s+(.+)$/);
-    if (listMatch) {
-      listItems.push(listMatch[1]);
-      return;
-    }
-
-    flushList();
-
-    if (/^#{1,3}\s+/.test(line)) {
-      blocks.push(
-        <p key={`heading-${index}`} className="mt-2 font-semibold">
-          {renderInlineMarkdown(line.replace(/^#{1,3}\s+/, ""))}
-        </p>
-      );
-      return;
-    }
-
-    if (/^---+$/.test(line)) {
-      blocks.push(<div key={`rule-${index}`} className="my-3 border-t" />);
-      return;
-    }
-
-    blocks.push(
-      <p key={`p-${index}`} className="my-2 whitespace-pre-wrap">
-        {renderInlineMarkdown(line)}
-      </p>
-    );
-  });
-
-  flushList();
-
-  return <div className="space-y-1">{blocks}</div>;
-}
-
-function renderInlineMarkdown(text: string): React.ReactNode[] {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-
-  return parts.map((part, index) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={index}>{part.slice(2, -2)}</strong>;
-    }
-
-    if (part.startsWith("`") && part.endsWith("`")) {
-      return (
-        <code
-          key={index}
-          className="rounded bg-background px-1 py-0.5 text-[0.92em]"
-        >
-          {part.slice(1, -1)}
-        </code>
-      );
-    }
-
-    return <span key={index}>{part}</span>;
-  });
 }

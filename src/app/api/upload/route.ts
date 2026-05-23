@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       fileName: file.name,
       fileSize: file.size,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "文件处理失败" },
       { status: 500 }

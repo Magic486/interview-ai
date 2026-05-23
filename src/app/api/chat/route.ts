@@ -1,4 +1,4 @@
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { streamText, convertToModelMessages } from "ai";
 import { interviewModel } from "@/lib/ai/client";
 import { interviewTools } from "@/lib/ai/interview-flow";
 import { getInterviewerSystemPrompt } from "@/lib/ai/prompts/interviewer";
@@ -7,70 +7,43 @@ import { COMPANY_FLOWS } from "@/config/interview-stages";
 import { saveMessage, updateInterviewStage } from "@/lib/ai/actions";
 
 const INIT_TRIGGER = "__INTERVIEW_START__";
-const START_PROMPT = "请开始本轮面试，先向候选人提出第一个问题。";
-type CandidateLevel = "初级" | "中级" | "高级";
 
-function getMessageText(message: UIMessage): string {
-  return message.parts
-    .filter((part): part is { type: "text"; text: string } => part.type === "text")
-    .map((part) => part.text)
-    .join("");
-}
+function extractUserText(msg: Record<string, unknown>): string | null {
+  if (msg.role !== "user") return null;
 
-function toModelInputMessages(messages: UIMessage[]) {
-  return messages.map((message) => {
-    const text = getMessageText(message);
-    const normalized =
-      text === INIT_TRIGGER
-        ? {
-            ...message,
-            parts: [{ type: "text" as const, text: START_PROMPT }],
-          }
-        : message;
+  if (typeof msg.content === "string") return msg.content;
 
-    const { id, ...messageWithoutId } = normalized;
-    void id;
-    return messageWithoutId;
-  });
+  if (Array.isArray(msg.parts)) {
+    const textParts = msg.parts.filter(
+      (p: Record<string, unknown>) => p.type === "text"
+    );
+    if (textParts.length > 0) return textParts.map((p) => p.text).join("");
+  }
+
+  return null;
 }
 
 export async function POST(req: Request) {
   try {
-    const { messages = [], config, mode, interviewId } = (await req.json()) as {
-      messages?: UIMessage[];
-      config: {
-        company: string;
-        role: string;
-        currentStage?: number;
-        candidateLevel?: CandidateLevel;
-        stressMode?: boolean;
-        resumeSummary?: string;
-      };
-      mode: "normal" | "reversed";
-      interviewId?: string;
-    };
+    const body = await req.json();
+    console.log("[chat] Request body keys:", Object.keys(body));
+    const { messages: rawMessages, config, mode, interviewId } = body;
 
-    const company = COMPANY_FLOWS[config.company] ?? COMPANY_FLOWS["bytedance"];
-    const currentStageIndex = config.currentStage ?? 0;
-    const stage = company.stages[currentStageIndex] ?? company.stages[0];
-
-    if (!stage) {
-      return Response.json({ error: "面试阶段配置不存在" }, { status: 400 });
-    }
+    const company = COMPANY_FLOWS[config?.company] ?? COMPANY_FLOWS["bytedance"];
+    const currentStageIndex = config?.currentStage ?? 0;
+    const stage = company.stages[currentStageIndex];
 
     // 保存用户发送的消息（跳过初始触发消息）
-    if (interviewId) {
-      const lastMsg = messages[messages.length - 1];
-      if (lastMsg?.role === "user") {
-        const contentStr = getMessageText(lastMsg);
-        if (contentStr && contentStr !== INIT_TRIGGER) {
-          await saveMessage({
-            interviewId,
-            role: "candidate",
-            content: contentStr,
-            stage: stage.id,
-          });
-        }
+    if (interviewId && rawMessages?.length > 0) {
+      const lastMsg = rawMessages[rawMessages.length - 1];
+      const userText = extractUserText(lastMsg);
+      if (userText && userText !== INIT_TRIGGER) {
+        await saveMessage({
+          interviewId,
+          role: "candidate",
+          content: userText,
+          stage: stage.id,
+        });
       }
     }
 
@@ -78,93 +51,100 @@ export async function POST(req: Request) {
       mode === "reversed"
         ? getIntervieweeSystemPrompt({
             company: company.name,
-            role: config.role,
-            level: config.candidateLevel ?? "中级",
+            role: config?.role ?? "",
+            level: config?.candidateLevel ?? "中级",
           })
         : getInterviewerSystemPrompt({
             company: company.name,
-            role: config.role,
+            role: config?.role ?? "",
             stage: {
               name: stage.name,
               focus: stage.focus,
               topics: stage.topics,
               duration: stage.duration,
             },
-            stressMode: config.stressMode ?? false,
-            resumeSummary: config.resumeSummary,
+            stressMode: config?.stressMode ?? false,
+            resumeSummary: config?.resumeSummary,
             currentStageIndex,
             totalStages: company.stages.length,
           });
 
-    const modelMessages = await convertToModelMessages(toModelInputMessages(messages), {
-      tools: interviewTools,
-      ignoreIncompleteToolCalls: true,
-    });
+    const modelMessages = await convertToModelMessages(rawMessages);
+
+    console.log("[chat] Starting streamText, modelMessages count:", modelMessages.length);
 
     const result = streamText({
       model: interviewModel,
       system: systemPrompt,
       messages: modelMessages,
       tools: interviewTools,
-      onError: (event) => {
-        console.error("/api/chat stream error:", event.error);
-      },
       onStepFinish: async (event) => {
         if (!interviewId) return;
-
-        for (const toolCall of event.toolCalls) {
-          const tc = toolCall as {
-            toolName?: string;
-            input?: Record<string, unknown>;
-          };
-          if (tc.toolName === "advanceStage" && tc.input) {
-            const nextStage = tc.input.nextStage as string;
-            const isCompleted = nextStage === "completed";
-            await updateInterviewStage(
-              interviewId,
-              isCompleted ? stage.id : nextStage,
-              isCompleted ? "completed" : undefined
-            );
-          }
-
-          if (tc.toolName === "evaluateAnswer" && tc.input) {
-            const { score, dimension, brief } = tc.input as {
-              score: number;
-              dimension: string;
-              brief: string;
+        try {
+          for (const toolCall of event.toolCalls) {
+            const tc = toolCall as {
+              toolName?: string;
+              input?: Record<string, unknown>;
             };
-            await saveMessage({
-              interviewId,
-              role: "system",
-              content: `[${dimension} 评分: ${score}/10] ${brief}`,
-              stage: stage.id,
-              score,
-              feedback: brief,
-            });
+            if (tc.toolName === "advanceStage" && tc.input) {
+              const nextStage = tc.input.nextStage as string;
+              const isCompleted = nextStage === "completed";
+              await updateInterviewStage(
+                interviewId,
+                isCompleted ? stage.id : nextStage,
+                isCompleted ? "completed" : undefined
+              );
+            }
+
+            if (tc.toolName === "evaluateAnswer" && tc.input) {
+              const { score, dimension, brief } = tc.input as {
+                score: number;
+                dimension: string;
+                brief: string;
+              };
+              await saveMessage({
+                interviewId,
+                role: "system",
+                content: `[${dimension} 评分: ${score}/10] ${brief}`,
+                stage: stage.id,
+                score,
+                feedback: brief,
+              });
+            }
           }
+        } catch (err) {
+          console.error("[chat] onStepFinish error:", err);
         }
       },
       onFinish: async (event) => {
         if (!interviewId) return;
-
-        const aiResponse = event.text;
-        if (aiResponse) {
-          await saveMessage({
-            interviewId,
-            role: "interviewer",
-            content: aiResponse,
-            stage: stage.id,
-          });
+        try {
+          const aiResponse = event.text;
+          if (aiResponse) {
+            await saveMessage({
+              interviewId,
+              role: "interviewer",
+              content: aiResponse,
+              stage: stage.id,
+            });
+          }
+        } catch (err) {
+          console.error("[chat] onFinish error:", err);
         }
+      },
+      onError: async (error) => {
+        console.error("[chat] streamText onError:", error instanceof Error ? error.message : JSON.stringify(error));
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return result.toTextStreamResponse();
   } catch (error) {
-    console.error("/api/chat failed:", error);
-    return Response.json(
-      { error: "AI 服务连接失败，请检查模型配置、网络或 API Key" },
-      { status: 500 }
-    );
+    console.error("[chat] POST error:", error);
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }

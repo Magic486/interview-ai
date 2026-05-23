@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Mic, BarChart3, RefreshCw, Briefcase } from "lucide-react";
+import { ArrowRight, Mic, BarChart3, RefreshCw, Briefcase, GraduationCap } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -30,6 +30,12 @@ export default function HomePage() {
             <Button size="lg" variant="outline" className="gap-2">
               <Briefcase className="h-5 w-5" />
               职业规划
+            </Button>
+          </Link>
+          <Link href="/student">
+            <Button size="lg" variant="outline" className="gap-2">
+              <GraduationCap className="h-5 w-5" />
+              大学生规划
             </Button>
           </Link>
         </div>
