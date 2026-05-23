@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { ChatPanel, type ChatPanelHandle } from "@/components/interview/ChatPanel";
 import { StageIndicator } from "@/components/interview/StageIndicator";
@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { COMPANY_FLOWS } from "@/config/interview-stages";
+import { loadInterviewContext } from "@/lib/interview-context";
+import { AlertTriangle, Clock, StopCircle } from "lucide-react";
 import type { InterviewConfig, InterviewMode } from "@/types";
 
 export default function InterviewPage() {
@@ -23,51 +25,60 @@ export default function InterviewPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const interviewId = params.id as string;
+  const [interviewContext] = useState(() => loadInterviewContext(interviewId));
 
   const [mode, setMode] = useState<InterviewMode>(
     (searchParams.get("mode") as InterviewMode) || "normal"
   );
-  const [company] = useState(searchParams.get("company") || "bytedance");
-  const [role] = useState(searchParams.get("role") || "后端开发工程师");
+  const company = searchParams.get("company") || "bytedance";
+  const role = searchParams.get("role") || "后端开发工程师";
   const [stressMode, setStressMode] = useState(
     searchParams.get("stress") === "true"
   );
-  const [currentStageIndex] = useState(0);
   const [showEndDialog, setShowEndDialog] = useState(false);
-
+  const [endReason, setEndReason] = useState<"manual" | "timeout">("manual");
   const chatPanelRef = useRef<ChatPanelHandle>(null);
 
-  const flow = COMPANY_FLOWS[company] ?? COMPANY_FLOWS["bytedance"];
+  const flow = COMPANY_FLOWS[company] ?? COMPANY_FLOWS.bytedance;
+  const requestedStageIndex = Number(searchParams.get("stage") ?? 0);
+  const currentStageIndex = Number.isFinite(requestedStageIndex)
+    ? Math.min(Math.max(requestedStageIndex, 0), flow.stages.length - 1)
+    : 0;
   const currentStage = flow.stages[currentStageIndex];
-  const totalStages = flow.stages.length;
   const codeEditorVisible = currentStage?.id === "algorithm";
+  const stageDurationSeconds = (currentStage?.duration ?? 45) * 60;
 
-  // 处理代码提交
-  const handleCodeSubmit = useCallback(
-    (code: string, language: string) => {
-      chatPanelRef.current?.sendMessage(
-        `我的代码（${language}）：\n\`\`\`${language}\n${code}\n\`\`\``
-      );
-    },
-    []
-  );
+  const handleCodeSubmit = useCallback((code: string, language: string) => {
+    chatPanelRef.current?.sendMessage(
+      `我的代码（${language}）：\n\`\`\`${language}\n${code}\n\`\`\``
+    );
+  }, []);
+
   const handleEndInterview = useCallback(() => {
+    setEndReason("manual");
+    setShowEndDialog(true);
+  }, []);
+
+  const handleTimerExpire = useCallback(() => {
+    setEndReason("timeout");
     setShowEndDialog(true);
   }, []);
 
   const confirmEndInterview = useCallback(() => {
     setShowEndDialog(false);
-    router.push(`/interview/review/${interviewId}?mode=${mode}&role=${role}&company=${company}`);
-  }, [interviewId, mode, role, company, router]);
+    const reviewParams = new URLSearchParams({
+      mode,
+      role,
+      company,
+      stage: String(currentStageIndex),
+    });
+    router.push(`/interview/review/${interviewId}?${reviewParams.toString()}`);
+  }, [interviewId, mode, role, company, currentStageIndex, router]);
 
-  // 切换模式
   const handleToggleMode = useCallback(() => {
-    const newMode = mode === "normal" ? "reversed" : "normal";
-    setMode(newMode);
-    // 强制重新渲染 ChatPanel（key 变化触发）
-  }, [mode]);
+    setMode((current) => (current === "normal" ? "reversed" : "normal"));
+  }, []);
 
-  // 切换压力面
   const handleToggleStress = useCallback(() => {
     setStressMode((prev) => !prev);
   }, []);
@@ -78,20 +89,20 @@ export default function InterviewPage() {
     mode,
     stressMode,
     currentStage: currentStageIndex,
+    stageIndex: currentStageIndex,
+    candidateProfileSummary: interviewContext?.candidateProfileSummary,
+    resumeSummary: interviewContext?.resumeSummary,
   };
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
-      {/* 左侧：阶段指示器 */}
       <aside className="w-64 shrink-0 border-r p-4 overflow-y-auto">
         <StageIndicator flow={flow} currentStage={currentStageIndex} />
       </aside>
 
-      {/* 中间：对话区域 */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* 顶部状态栏 */}
-        <div className="border-b px-4 py-2 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="border-b px-4 py-2 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-sm">
               {flow.name} · {role}
             </span>
@@ -101,14 +112,39 @@ export default function InterviewPage() {
             <Badge variant="secondary" className="text-xs">
               {mode === "reversed" ? "面试官视角" : "候选人视角"}
             </Badge>
+            {interviewContext?.candidateProfileSummary ? (
+              <Badge variant="outline" className="text-xs">
+                已接入个人信息
+              </Badge>
+            ) : null}
+            {interviewContext?.resumeSummary ? (
+              <Badge variant="outline" className="text-xs">
+                已接入简历
+              </Badge>
+            ) : null}
           </div>
-          <div className="text-sm text-muted-foreground">
-            {currentStageIndex + 1}/{totalStages} · {currentStage?.name}
+          <div className="flex items-center gap-3">
+            <CountdownTimer
+              durationSeconds={stageDurationSeconds}
+              paused={showEndDialog}
+              onExpire={handleTimerExpire}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEndInterview}
+              className="h-8 gap-1"
+            >
+              <StopCircle className="h-4 w-4" />
+              提前结束
+            </Button>
+            <div className="text-sm text-muted-foreground">
+              当前模块 · {currentStage?.name}
+            </div>
           </div>
         </div>
 
-        {/* 对话面板 */}
-        <div className="flex-1 overflow-hidden" key={`${mode}-${stressMode}`}>
+        <div className="flex-1 overflow-hidden" key={`${mode}-${stressMode}-${currentStageIndex}`}>
           <ChatPanel
             ref={chatPanelRef}
             interviewId={interviewId}
@@ -117,7 +153,6 @@ export default function InterviewPage() {
           />
         </div>
 
-        {/* 底部控制栏 */}
         <div className="border-t px-4 py-2 shrink-0">
           <InterviewControls
             mode={mode}
@@ -129,7 +164,6 @@ export default function InterviewPage() {
         </div>
       </div>
 
-      {/* 右侧：代码编辑器（仅算法面） */}
       {codeEditorVisible && (
         <aside className="w-96 shrink-0 border-l">
           <CodeEditor
@@ -140,13 +174,16 @@ export default function InterviewPage() {
         </aside>
       )}
 
-      {/* 结束面试确认弹窗 */}
       <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>确认结束面试？</DialogTitle>
+            <DialogTitle>
+              {endReason === "timeout" ? "本轮时间已到" : "确认结束面试？"}
+            </DialogTitle>
             <DialogDescription>
-              结束后将无法继续本次面试，系统会为你生成复盘报告。
+              {endReason === "timeout"
+                ? "当前模块倒计时已结束，可以进入复盘报告。"
+                : "结束后将无法继续本次面试，系统会为你生成复盘报告。"}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -163,7 +200,73 @@ export default function InterviewPage() {
   );
 }
 
-// 内联 Badge（避免额外引入）
+function CountdownTimer({
+  durationSeconds,
+  paused,
+  onExpire,
+}: {
+  durationSeconds: number;
+  paused: boolean;
+  onExpire: () => void;
+}) {
+  const [timeLeft, setTimeLeft] = useState(durationSeconds);
+  const [notice, setNotice] = useState<string | null>(null);
+  const remainingRef = useRef(durationSeconds);
+  const expiredRef = useRef(false);
+  const fiveMinuteNotifiedRef = useRef(false);
+  const oneMinuteNotifiedRef = useRef(false);
+
+  useEffect(() => {
+    if (paused || expiredRef.current) return;
+
+    const timer = window.setInterval(() => {
+      remainingRef.current = Math.max(remainingRef.current - 1, 0);
+      setTimeLeft(remainingRef.current);
+
+      if (remainingRef.current <= 60 && !oneMinuteNotifiedRef.current) {
+        oneMinuteNotifiedRef.current = true;
+        setNotice("最后 1 分钟");
+      } else if (
+        remainingRef.current <= 300 &&
+        !fiveMinuteNotifiedRef.current
+      ) {
+        fiveMinuteNotifiedRef.current = true;
+        setNotice("剩余 5 分钟");
+      }
+
+      if (remainingRef.current === 0 && !expiredRef.current) {
+        expiredRef.current = true;
+        onExpire();
+      }
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [onExpire, paused]);
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5 text-sm font-semibold text-destructive shadow-sm">
+        <Clock className="h-4 w-4" />
+        <span className="tabular-nums">{formatTime(timeLeft)}</span>
+      </div>
+      {notice && (
+        <div className="flex items-center gap-1 rounded-md bg-destructive px-2 py-1 text-xs font-medium text-destructive-foreground">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          {notice}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatTime(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes.toString().padStart(2, "0")}:${seconds
+    .toString()
+    .padStart(2, "0")}`;
+}
+
 function Badge({
   children,
   variant = "outline",

@@ -25,17 +25,17 @@ export const interviewTools = {
     description:
       "当当前阶段面试考察充分、可以结束时，推进到下一阶段。如果已经是最后一阶段，nextStage 设为 'completed'。",
     inputSchema: advanceStageSchema,
-    execute: async () => void 0,
+    execute: async () => ({ ok: true }),
   }),
   evaluateAnswer: tool({
     description:
       "在候选人回答完每个问题后，对该回答进行即时评分。每题调用一次。",
     inputSchema: evaluateAnswerSchema,
-    execute: async () => void 0,
+    execute: async () => ({ ok: true }),
   }),
   stressMode: tool({
     description: "切换压力面模式，持续追问和质疑候选人的回答。",
     inputSchema: stressModeSchema,
-    execute: async () => void 0,
+    execute: async () => ({ ok: true }),
   }),
 };

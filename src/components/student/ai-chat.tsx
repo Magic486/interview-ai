@@ -12,58 +12,89 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Bot, User, Loader2 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 
 interface AiChatProps {
   context?: string;
 }
 
 function MarkdownContent({ content }: { content: string }) {
-  return (
-    <ReactMarkdown
-      components={{
-        h1: ({ children }) => (
-          <h1 className="text-base font-bold mt-3 mb-1">{children}</h1>
-        ),
-        h2: ({ children }) => (
-          <h2 className="text-sm font-bold mt-2.5 mb-1">{children}</h2>
-        ),
-        h3: ({ children }) => (
-          <h3 className="text-sm font-semibold mt-2 mb-0.5">{children}</h3>
-        ),
-        p: ({ children }) => (
-          <p className="leading-relaxed mb-1.5 last:mb-0">{children}</p>
-        ),
-        ul: ({ children }) => (
-          <ul className="list-disc pl-4 mb-1.5 space-y-0.5">{children}</ul>
-        ),
-        ol: ({ children }) => (
-          <ol className="list-decimal pl-4 mb-1.5 space-y-0.5">{children}</ol>
-        ),
-        li: ({ children }) => <li className="text-sm">{children}</li>,
-        strong: ({ children }) => (
-          <strong className="font-semibold">{children}</strong>
-        ),
-        code: ({ children }) => (
-          <code className="bg-black/10 rounded px-1 py-0.5 text-xs font-mono">
-            {children}
-          </code>
-        ),
-        pre: ({ children }) => (
-          <pre className="bg-black/10 rounded p-2 overflow-x-auto text-xs font-mono my-1.5">
-            {children}
-          </pre>
-        ),
-        blockquote: ({ children }) => (
-          <blockquote className="border-l-2 border-slate-300 pl-2 my-1.5 text-slate-500">
-            {children}
-          </blockquote>
-        ),
-      }}
-    >
-      {content}
-    </ReactMarkdown>
-  );
+  const lines = content.split(/\r?\n/);
+  const blocks: React.ReactNode[] = [];
+  let listItems: string[] = [];
+
+  const flushList = () => {
+    if (listItems.length === 0) return;
+    blocks.push(
+      <ul key={`list-${blocks.length}`} className="mb-1.5 list-disc space-y-0.5 pl-4">
+        {listItems.map((item, index) => (
+          <li key={`${item}-${index}`} className="text-sm">
+            {renderInlineMarkdown(item)}
+          </li>
+        ))}
+      </ul>
+    );
+    listItems = [];
+  };
+
+  lines.forEach((rawLine, index) => {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushList();
+      return;
+    }
+
+    const listMatch = line.match(/^[-*]\s+(.+)$/);
+    if (listMatch) {
+      listItems.push(listMatch[1]);
+      return;
+    }
+
+    flushList();
+
+    if (/^#{1,3}\s+/.test(line)) {
+      blocks.push(
+        <p key={`heading-${index}`} className="mb-1 mt-2 font-semibold">
+          {renderInlineMarkdown(line.replace(/^#{1,3}\s+/, ""))}
+        </p>
+      );
+      return;
+    }
+
+    blocks.push(
+      <p key={`p-${index}`} className="mb-1.5 leading-relaxed last:mb-0">
+        {renderInlineMarkdown(line)}
+      </p>
+    );
+  });
+
+  flushList();
+
+  return <div>{blocks}</div>;
+}
+
+function renderInlineMarkdown(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={index} className="font-semibold">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code key={index} className="rounded bg-black/10 px-1 py-0.5 text-xs font-mono">
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+
+    return <span key={index}>{part}</span>;
+  });
 }
 
 export function AiChat({ context }: AiChatProps) {

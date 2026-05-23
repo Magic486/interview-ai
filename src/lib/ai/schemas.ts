@@ -29,7 +29,9 @@ export const dimensionScoresSchema = z.object({
   communication: z.number().min(1).max(100).describe("沟通表达评分"),
   logic: z.number().min(1).max(100).describe("思维逻辑评分"),
   depth: z.number().min(1).max(100).describe("知识深度评分"),
-  coding: z.number().min(1).max(100).optional().describe("代码能力评分"),
+  coding: z
+    .preprocess((value) => (value === null ? undefined : value), z.number().min(1).max(100).optional())
+    .describe("代码能力评分"),
 });
 
 export const perQuestionAnalysisSchema = z.object({
@@ -43,6 +45,12 @@ export const perQuestionAnalysisSchema = z.object({
 
 export const reviewReportSchema = z.object({
   overallScore: z.number().min(1).max(100).describe("整体评分"),
+  passDecision: z
+    .enum(["strong_pass", "pass", "borderline", "fail"])
+    .describe("如果这是正式面试，候选人的通过结论"),
+  passProbability: z.number().min(0).max(100).describe("正式面试通过概率"),
+  hiringVerdict: z.string().describe("一句话录用/通过判断，直接说明能否通过"),
+  coreDiagnosis: z.string().describe("本次面试最核心的问题或最关键的通过理由"),
   dimensionScores: dimensionScoresSchema,
   perQuestionAnalysis: z.array(perQuestionAnalysisSchema).describe("逐题分析"),
   top3Strengths: z.array(

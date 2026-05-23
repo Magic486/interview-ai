@@ -1,171 +1,394 @@
-"use client";
-
-import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  CircleX,
+  ClipboardList,
+  RefreshCw,
+  Target,
+  TrendingUp,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScoreRadar } from "@/components/review/ScoreRadar";
-import { AnswerAnalysis } from "@/components/review/AnswerAnalysis";
-import { TrendChart } from "@/components/review/TrendChart";
-import { ImprovementList } from "@/components/review/ImprovementList";
-import { generateReview } from "@/lib/ai/actions";
-import { Loader2, ArrowLeft, AlertCircle } from "lucide-react";
-import type { ReviewReport } from "@/types";
+import { generateReview, getReview } from "@/lib/ai/actions";
+import type { DimensionScores, ReviewReport } from "@/types";
 
-type PageParams = { id: string };
+export const dynamic = "force-dynamic";
 
-export default function ReviewPage({ params }: { params: Promise<PageParams> }) {
-  const { id } = use(params);
-  const router = useRouter();
-  const [report, setReport] = useState<ReviewReport | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface ReviewPageProps {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{
+    role?: string;
+    company?: string;
+    mode?: string;
+  }>;
+}
 
-  useEffect(() => {
-    let cancelled = false;
+export default async function ReviewPage({
+  params,
+  searchParams,
+}: ReviewPageProps) {
+  const { id } = await params;
+  const query = searchParams ? await searchParams : {};
+  let report: ReviewReport | null = null;
+  let generatedNow = false;
+  let errorMessage: string | null = null;
 
-    async function load() {
-      try {
-        const data = await generateReview(id);
-        if (!cancelled) setReport(data);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "加载复盘报告失败");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  try {
+    report = await getReview(id);
+    if (!report) {
+      report = await generateReview(id);
+      generatedNow = true;
     }
+  } catch (error) {
+    errorMessage =
+      error instanceof Error ? error.message : "复盘报告生成失败，请稍后重试";
+  }
 
-    load();
-    return () => { cancelled = true; };
-  }, [id]);
-
-  if (loading) {
+  if (!report) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">AI 正在分析你的面试表现...</p>
+      <main className="mx-auto max-w-4xl px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold">复盘报告</h1>
+          <p className="mt-2 text-muted-foreground">
+            暂时无法生成本次面试复盘
+          </p>
         </div>
-      </div>
-    );
-  }
 
-  if (error) {
-    return (
-      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-4">
-        <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
-        <h1 className="text-xl font-bold">无法加载复盘报告</h1>
-        <p className="text-muted-foreground">{error}</p>
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          返回
-        </Button>
-      </div>
-    );
-  }
-
-  if (!report) return null;
-
-  const trendData = report.perQuestionAnalysis.map((q, i) => ({
-    label: `Q${i + 1}`,
-    score: q.score,
-  }));
-
-  return (
-    <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard")}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-2xl font-bold">面试复盘报告</h1>
-      </div>
-
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold text-primary">
-            {report.overallScore}
-          </CardTitle>
-          <CardDescription>综合评分</CardDescription>
-        </CardHeader>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>能力维度</CardTitle>
-          <CardDescription>各维度得分一览</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScoreRadar scores={report.dimensionScores} />
-        </CardContent>
-      </Card>
-
-      {trendData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>得分趋势</CardTitle>
-            <CardDescription>每道题的表现变化</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              生成失败
+            </CardTitle>
+            <CardDescription>
+              {errorMessage || "本次面试记录不足，无法进行有效复盘。"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <TrendChart data={trendData} />
+            <Link href="/interview/new">
+              <Button>重新开始面试</Button>
+            </Link>
           </CardContent>
         </Card>
-      )}
+      </main>
+    );
+  }
 
-      <div>
-        <h2 className="text-xl font-bold mb-4">逐题分析</h2>
-        <div className="space-y-4">
-          {report.perQuestionAnalysis.map((q, i) => (
-            <AnswerAnalysis key={i} data={q} index={i} />
-          ))}
+  const verdict = getVerdictMeta(report);
+  const roleText = query.role || "目标岗位";
+  const companyText = query.company || "目标公司";
+  const isReversed = query.mode === "reversed";
+
+  return (
+    <main className="mx-auto max-w-6xl px-4 py-8">
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <Badge variant={generatedNow ? "default" : "secondary"}>
+              {generatedNow ? "已生成新报告" : "已读取历史报告"}
+            </Badge>
+            <Badge variant="outline">
+              {companyText} · {roleText}
+            </Badge>
+          </div>
+          <h1 className="text-2xl font-bold">复盘报告</h1>
+          <p className="mt-2 text-muted-foreground">
+            {isReversed
+              ? "基于本次面试对话，评估你的提问质量、追问深度和面试官能力"
+              : "基于本次面试对话，评估通过概率、关键短板和下一步提升路径"}
+          </p>
         </div>
+        <Link href="/interview/new">
+          <Button variant="outline" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            再练一次
+          </Button>
+        </Link>
       </div>
 
-      <Card>
+      <section className="grid gap-4 md:grid-cols-[1.1fr_1.9fr]">
+        <Card className={`border ${verdict.borderClass}`}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <verdict.icon className={`h-5 w-5 ${verdict.iconClass}`} />
+              {isReversed ? "面试官能力结论" : "正式面试结论"}
+            </CardTitle>
+            <CardDescription>{report.hiringVerdict}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-2">
+              <span className="text-5xl font-bold">{report.overallScore}</span>
+              <span className="mb-1 text-sm text-muted-foreground">/ 100</span>
+            </div>
+            <div className="mt-4 flex items-center gap-3">
+              <Badge variant={verdict.badgeVariant}>{verdict.label}</Badge>
+              <span className="text-sm text-muted-foreground">
+                {isReversed ? "有效面试能力" : "通过概率"} {report.passProbability}%
+              </span>
+            </div>
+            <div className="mt-5">
+              <p className="text-sm font-medium">核心诊断</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {report.coreDiagnosis}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              能力维度评分
+            </CardTitle>
+            <CardDescription>
+              {isReversed
+                ? "重点看问题设计、追问质量、判断逻辑和岗位匹配意识"
+                : "判断问题不是只看总分，而是看短板是否命中岗位核心要求"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DimensionBars scores={report.dimensionScores} />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="mt-4 grid gap-4 md:grid-cols-2">
+        <SummaryList
+          title="主要优势"
+          icon={CheckCircle2}
+          items={report.top3Strengths.map((item) => ({
+            title: item.point,
+            body: item.example,
+          }))}
+        />
+        <SummaryList
+          title="主要问题"
+          icon={AlertTriangle}
+          items={report.top3Weaknesses.map((item) => ({
+            title: item.point,
+            body: `${item.example} 建议：${item.suggestion}`,
+          }))}
+        />
+      </section>
+
+      <Card className="mt-4">
         <CardHeader>
-          <CardTitle>优势与改进</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <ClipboardList className="h-5 w-5" />
+            逐题复盘
+          </CardTitle>
+          <CardDescription>
+            {isReversed
+              ? "按“你的提问 → AI 候选人回答 → 提问质量 → 更好追问”拆解"
+              : "按“面试官问题 → 你的回答 → 问题定位 → 示范回答”拆解"}
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <h3 className="font-semibold text-green-600 mb-3">Top 3 优势</h3>
-            <div className="space-y-3">
-              {report.top3Strengths.map((s, i) => (
-                <div key={i} className="p-3 bg-green-50 dark:bg-green-950 rounded-lg">
-                  <p className="font-medium">{i + 1}. {s.point}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{s.example}</p>
+        <CardContent className="space-y-4">
+          {report.perQuestionAnalysis.length > 0 ? (
+            report.perQuestionAnalysis.map((item, index) => (
+              <div key={`${item.question}-${index}`} className="rounded-lg border p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {isReversed ? "你的提问" : "问题"} {index + 1}：
+                      {item.question}
+                    </p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {isReversed ? "AI 候选人回答" : "你的回答"}：
+                      {item.yourAnswer}
+                    </p>
+                  </div>
+                  <Badge variant={item.score >= 7 ? "secondary" : "destructive"}>
+                    {item.score}/10
+                  </Badge>
                 </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h3 className="font-semibold text-amber-600 mb-3">Top 3 待改进</h3>
-            <div className="space-y-3">
-              {report.top3Weaknesses.map((w, i) => (
-                <div key={i} className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg">
-                  <p className="font-medium">{i + 1}. {w.point}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{w.example}</p>
-                  <p className="text-sm font-medium mt-2">建议：{w.suggestion}</p>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <MiniList
+                    title={isReversed ? "提问做得好的地方" : "答得好的地方"}
+                    items={item.strengths}
+                  />
+                  <MiniList title="需要改进" items={item.weaknesses} />
                 </div>
-              ))}
-            </div>
-          </div>
+
+                <div className="mt-4 rounded-md bg-muted/50 p-3">
+                  <p className="text-sm font-medium">
+                    {isReversed ? "更好的追问方式" : "更好的回答方式"}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {item.suggestedAnswer}
+                  </p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              本次对话轮次较少，暂未形成逐题复盘。
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      <div>
-        <h2 className="text-xl font-bold mb-4">改进计划</h2>
-        <ImprovementList items={report.improvementPlan} />
-      </div>
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            提升计划
+          </CardTitle>
+          <CardDescription>
+            {isReversed
+              ? "按优先级提升提问设计、追问深度和候选人判断能力"
+              : "按优先级补齐影响通过率的关键能力"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2">
+          {report.improvementPlan.map((item, index) => (
+            <div key={`${item.area}-${index}`} className="rounded-lg border p-4">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                  {index + 1}
+                </span>
+                <p className="font-medium">{item.area}</p>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                {item.action}
+              </p>
+              {item.resources.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {item.resources.map((resource) => (
+                    <Badge key={resource} variant="outline">
+                      {resource}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
 
-      <div className="flex gap-4 justify-center">
-        <Button onClick={() => router.push("/career")}>
-          查看职业规划
-        </Button>
-        <Button variant="outline" onClick={() => router.push("/interview/new")}>
-          开始新面试
-        </Button>
-      </div>
+function DimensionBars({ scores }: { scores: DimensionScores }) {
+  const dimensions = [
+    ["技术能力", scores.technical],
+    ["沟通表达", scores.communication],
+    ["思维逻辑", scores.logic],
+    ["知识深度", scores.depth],
+    ["代码能力", scores.coding],
+  ].filter((item): item is [string, number] => typeof item[1] === "number");
+
+  return (
+    <div className="space-y-4">
+      {dimensions.map(([label, score]) => (
+        <div key={label}>
+          <div className="mb-1 flex items-center justify-between text-sm">
+            <span className="font-medium">{label}</span>
+            <span className="tabular-nums text-muted-foreground">{score}</span>
+          </div>
+          <div className="h-2 rounded-full bg-muted">
+            <div
+              className="h-2 rounded-full bg-primary"
+              style={{ width: `${Math.max(4, Math.min(score, 100))}%` }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   );
+}
+
+function SummaryList({
+  title,
+  icon: Icon,
+  items,
+}: {
+  title: string;
+  icon: typeof CheckCircle2;
+  items: Array<{ title: string; body: string }>;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Icon className="h-5 w-5" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {items.map((item, index) => (
+          <div key={`${item.title}-${index}`} className="rounded-lg border p-3">
+            <p className="font-medium">{item.title}</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              {item.body}
+            </p>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MiniList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <p className="text-sm font-medium">{title}</p>
+      <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+        {items.map((item) => (
+          <li key={item} className="flex gap-2">
+            <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function getVerdictMeta(report: ReviewReport) {
+  switch (report.passDecision) {
+    case "strong_pass":
+      return {
+        label: "强通过",
+        icon: CheckCircle2,
+        iconClass: "text-green-600",
+        borderClass: "border-green-500/30",
+        badgeVariant: "default" as const,
+      };
+    case "pass":
+      return {
+        label: "通过",
+        icon: CheckCircle2,
+        iconClass: "text-green-600",
+        borderClass: "border-green-500/30",
+        badgeVariant: "secondary" as const,
+      };
+    case "borderline":
+      return {
+        label: "边缘",
+        icon: AlertTriangle,
+        iconClass: "text-amber-600",
+        borderClass: "border-amber-500/30",
+        badgeVariant: "outline" as const,
+      };
+    case "fail":
+      return {
+        label: "未通过",
+        icon: CircleX,
+        iconClass: "text-destructive",
+        borderClass: "border-destructive/30",
+        badgeVariant: "destructive" as const,
+      };
+  }
 }

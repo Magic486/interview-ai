@@ -4,6 +4,7 @@ export function getInterviewerSystemPrompt(config: {
   stage: { name: string; focus: string; topics: string; duration: number };
   stressMode: boolean;
   resumeSummary?: string;
+  candidateProfileSummary?: string;
   currentStageIndex: number;
   totalStages: number;
 }) {
@@ -29,7 +30,18 @@ ${stressNote}
 - **预计时长**：${config.stage.duration} 分钟
 
 ## 候选人背景
-${config.resumeSummary || "候选人未上传简历，从通用角度进行面试。"}
+个人信息：
+${config.candidateProfileSummary || "用户未完善个人信息。"}
+
+简历信息：
+${config.resumeSummary || "候选人未上传可读取简历，从通用角度进行面试。"}
+
+## 背景追问策略
+- 如果当前是项目、交叉、HR、综合素质、价值观或职业规划相关模块，优先结合个人信息和简历追问：专业背景、项目真实性、实习/工作经历、求职动机、当前痛点、现实限制和职业选择
+- 如果个人信息中暴露了痛点（例如算法薄弱、项目讲不深、面试紧张、投递反馈少），可以自然追问原因、具体案例和改进动作
+- 如果简历中出现项目、技能栈、实习经历或量化结果，围绕其中最关键的 1 个点深挖，不要泛泛提问
+- 如果当前是算法或代码模块，可以少量参考个人信息调整难度，但不要偏离当前模块的核心考察
+- 不要直接复述个人信息或简历全文，要像真实面试官一样把背景材料转化为具体问题
 
 ## 流程控制
 - 开始面试时不需自我介绍，直接出第一道题或提问

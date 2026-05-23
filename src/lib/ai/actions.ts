@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "crypto";
-import { generateObject } from "ai";
+import { generateObject, generateText } from "ai";
 import { eq, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { COMPANY_FLOWS } from "@/config/interview-stages";
@@ -232,6 +232,11 @@ export async function generateReview(
   interviewId: string
 ): Promise<ReviewReport> {
   const messageList = await getMessages(interviewId);
+  const interview = db
+    .select()
+    .from(interviews)
+    .where(eq(interviews.id, interviewId))
+    .get();
 
   if (messageList.length === 0) {
     throw new Error("该面试没有对话记录");
@@ -244,16 +249,65 @@ export async function generateReview(
     )
     .join("\n\n");
 
-  const result = await generateObject({
+  const reviewPrompt = `请分析以下面试对话，生成详细的复盘报告。
+
+面试信息：
+- 目标公司：${interview?.companyType || "未知"}
+- 目标岗位：${interview?.role || "未知"}
+- 面试模式：${interview?.mode === "reversed" ? "用户作为面试官" : "用户作为候选人"}
+- 本次面试模块：${interview?.currentStage || "未知"}
+
+评价对象：
+${interview?.mode === "reversed"
+  ? "用户是面试官，请评价用户的提问质量、追问深度、判断能力和面试节奏控制，不要评价 AI 候选人是否能通过。"
+  : "用户是候选人，请评价用户作为候选人的回答质量、岗位匹配度和正式面试通过概率。"}
+
+${conversationText}
+
+请严格只输出一个 JSON 对象，不要使用 Markdown 代码块，不要添加任何解释文字。
+必须使用英文 key，禁止使用中文字段名。JSON 结构必须完全符合下面模板：
+{
+  "overallScore": 72,
+  "passDecision": "borderline",
+  "passProbability": 65,
+  "hiringVerdict": "正式面试处于边缘状态，需要补充考察项目深度。",
+  "coreDiagnosis": "最大问题是表现停留在表层，缺少具体证据支撑。",
+  "dimensionScores": {
+    "technical": 70,
+    "communication": 75,
+    "logic": 68,
+    "depth": 62,
+    "coding": 60
+  },
+  "perQuestionAnalysis": [
+    {
+      "question": "面试官原问题",
+      "yourAnswer": "候选人回答概述，或 AI 候选人的回答概述",
+      "score": 6,
+      "strengths": ["优点1"],
+      "weaknesses": ["问题1"],
+      "suggestedAnswer": "更好的示范回答，或更好的面试官追问示例"
+    }
+  ],
+  "top3Strengths": [
+    { "point": "优势点", "example": "面试中的具体证据" }
+  ],
+  "top3Weaknesses": [
+    { "point": "问题点", "example": "面试中的具体表现", "suggestion": "改进建议" }
+  ],
+  "improvementPlan": [
+    { "area": "改进领域", "action": "具体行动", "resources": ["资源1", "资源2"] }
+  ]
+}
+passDecision 只能是 strong_pass、pass、borderline、fail。resources 必须是字符串数组。`;
+
+  const result = await generateText({
     model: analysisModel,
     system: getReviewerSystemPrompt(),
-    schema: reviewReportSchema,
-    prompt: `请分析以下面试对话，生成详细的复盘报告：
-
-${conversationText}`,
+    prompt: reviewPrompt,
   });
 
-  const report = result.object;
+  const report = await parseReviewReportWithRepair(result.text);
 
   const existing = db
     .select()
@@ -304,14 +358,107 @@ export async function getReview(interviewId: string) {
 
   if (!row) return null;
 
-  return {
+  const baseReport = {
     overallScore: row.overallScore,
     dimensionScores: JSON.parse(row.dimensionScores),
     perQuestionAnalysis: JSON.parse(row.perQuestionAnalysis || "[]"),
     top3Strengths: JSON.parse(row.strengths || "[]"),
     top3Weaknesses: JSON.parse(row.weaknesses || "[]"),
     improvementPlan: JSON.parse(row.improvementPlan || "[]"),
+  };
+
+  return {
+    ...baseReport,
+    ...derivePassAssessment(baseReport as ReviewReport),
   } as ReviewReport;
+}
+
+function parseJsonObject(text: string): unknown {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const jsonText = fenced?.[1] ?? trimmed;
+  const start = jsonText.indexOf("{");
+  const end = jsonText.lastIndexOf("}");
+
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error("AI 未返回可解析的 JSON 复盘报告");
+  }
+
+  return JSON.parse(jsonText.slice(start, end + 1));
+}
+
+async function parseReviewReportWithRepair(text: string): Promise<ReviewReport> {
+  const parsed = reviewReportSchema.safeParse(parseJsonObject(text));
+  if (parsed.success) {
+    return parsed.data;
+  }
+
+  const repair = await generateText({
+    model: analysisModel,
+    system: "你是一个严格的 JSON 修复器，只能输出合法 JSON，不要输出解释。",
+    prompt: `下面是一个面试复盘 JSON，但它不符合目标 schema。请把它改成完全符合 schema 的 JSON。
+
+修复要求：
+- 只能使用英文 key
+- coding 如果没有考察，也给出 1-100 的估计分数
+- perQuestionAnalysis 每一项必须包含 question、yourAnswer、score、strengths、weaknesses、suggestedAnswer
+- top3Strengths 每一项必须包含 point、example
+- top3Weaknesses 每一项必须包含 point、example、suggestion
+- improvementPlan 每一项必须包含 area、action、resources，其中 resources 必须是字符串数组
+- passDecision 只能是 strong_pass、pass、borderline、fail
+- 只输出 JSON 对象
+
+原始内容：
+${text}
+
+校验错误：
+${parsed.error.message}`,
+  });
+
+  return reviewReportSchema.parse(parseJsonObject(repair.text));
+}
+
+function derivePassAssessment(report: Pick<
+  ReviewReport,
+  "overallScore" | "top3Strengths" | "top3Weaknesses"
+>) {
+  if (report.overallScore >= 85) {
+    return {
+      passDecision: "strong_pass" as const,
+      passProbability: Math.min(95, report.overallScore + 5),
+      hiringVerdict: "正式面试大概率通过，表现已经达到较强候选人水平。",
+      coreDiagnosis:
+        report.top3Strengths[0]?.point || "整体表现稳定，关键能力匹配目标岗位。",
+    };
+  }
+
+  if (report.overallScore >= 75) {
+    return {
+      passDecision: "pass" as const,
+      passProbability: report.overallScore,
+      hiringVerdict: "正式面试有较大机会通过，但需要补足关键短板。",
+      coreDiagnosis:
+        report.top3Weaknesses[0]?.point || "存在局部短板，但未明显影响整体胜任度。",
+    };
+  }
+
+  if (report.overallScore >= 65) {
+    return {
+      passDecision: "borderline" as const,
+      passProbability: report.overallScore,
+      hiringVerdict: "正式面试处于边缘状态，是否通过取决于追问表现和竞争情况。",
+      coreDiagnosis:
+        report.top3Weaknesses[0]?.point || "部分回答缺少深度或证据，需要补充考察。",
+    };
+  }
+
+  return {
+    passDecision: "fail" as const,
+    passProbability: Math.max(10, report.overallScore),
+    hiringVerdict: "正式面试不建议通过，当前表现与岗位要求仍有明显差距。",
+    coreDiagnosis:
+      report.top3Weaknesses[0]?.point || "核心能力呈现不足，回答质量无法支撑通过判断。",
+  };
 }
 
 export async function getUserInterviews(userId: string) {

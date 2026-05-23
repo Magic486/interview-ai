@@ -11,6 +11,8 @@ export interface InterviewConfig {
   stressMode: boolean;
   resumeId?: string;
   stageIndex?: number;
+  candidateProfileSummary?: string;
+  resumeSummary?: string;
 }
 
 export interface Interview {
@@ -76,6 +78,10 @@ export interface ImprovementAction {
 
 export interface ReviewReport {
   overallScore: number;
+  passDecision: "strong_pass" | "pass" | "borderline" | "fail";
+  passProbability: number;
+  hiringVerdict: string;
+  coreDiagnosis: string;
   dimensionScores: DimensionScores;
   perQuestionAnalysis: PerQuestionAnalysis[];
   top3Strengths: StrengthPoint[];

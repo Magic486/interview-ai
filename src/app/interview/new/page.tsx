@@ -17,6 +17,12 @@ import {
 import { Upload } from "lucide-react";
 import { COMPANY_FLOWS, ROLES } from "@/config/interview-stages";
 import { createInterview } from "@/lib/ai/actions";
+import { loadCareerProfile } from "@/lib/career-profile";
+import {
+  buildCandidateProfileSummary,
+  buildResumeSummaryFromFile,
+  saveInterviewContext,
+} from "@/lib/interview-context";
 import type { InterviewMode } from "@/types";
 
 export default function NewInterviewPage() {
@@ -42,6 +48,15 @@ export default function NewInterviewPage() {
         stressMode,
         stageIndex,
       });
+      const profile = loadCareerProfile();
+      const candidateProfileSummary = buildCandidateProfileSummary(profile);
+      const resumeSummary = await buildResumeSummaryFromFile(resumeFile);
+
+      saveInterviewContext(interviewId, {
+        candidateProfileSummary,
+        resumeSummary,
+        resumeFileName: resumeFile?.name,
+      });
 
       const params = new URLSearchParams({
         mode,
@@ -49,6 +64,8 @@ export default function NewInterviewPage() {
         company,
         stage: String(stageIndex),
         stress: String(stressMode),
+        profile: candidateProfileSummary ? "1" : "0",
+        resume: resumeSummary ? "1" : "0",
       });
 
       router.push(`/interview/${interviewId}?${params.toString()}`);
@@ -165,7 +182,9 @@ export default function NewInterviewPage() {
         <Card>
           <CardHeader>
             <CardTitle>简历（可选）</CardTitle>
-            <CardDescription>上传简历让面试更有针对性</CardDescription>
+            <CardDescription>
+              支持 txt、md 等纯文本简历；其他格式会记录文件名，并由面试官追问补充
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="border-2 border-dashed rounded-lg p-8 text-center">
@@ -177,7 +196,7 @@ export default function NewInterviewPage() {
                 选择文件
                 <input
                   type="file"
-                  accept=".pdf,.doc,.docx,.txt"
+                  accept=".txt,.md,.markdown,text/plain,text/markdown"
                   className="hidden"
                   onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
                 />

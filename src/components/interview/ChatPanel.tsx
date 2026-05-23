@@ -24,9 +24,9 @@ interface ChatPanelProps {
 const INIT_TRIGGER = "__INTERVIEW_START__";
 
 function formatError(err: Error | undefined): string {
-  if (!err) return "AI 服务连接失败，请检查 API Key";
+  if (!err) return "AI 服务连接失败，请检查模型配置、网络或 API Key";
   const msg = err.message;
-  if (!msg) return "AI 服务连接失败，请检查 API Key";
+  if (!msg) return "AI 服务连接失败，请检查模型配置、网络或 API Key";
   // 如果服务端返回的是 JSON 格式错误，提取真实错误信息
   try {
     const parsed = JSON.parse(msg);
@@ -268,8 +268,94 @@ function MessageBubble({
           isInterviewer ? "bg-muted/50" : "bg-primary/5 border-primary/20"
         )}
       >
-        <p className="whitespace-pre-wrap">{content}</p>
+        {isInterviewer ? (
+          <MarkdownMessage content={content} />
+        ) : (
+          <p className="whitespace-pre-wrap">{content}</p>
+        )}
       </Card>
     </div>
   );
+}
+
+function MarkdownMessage({ content }: { content: string }) {
+  const lines = content.split(/\r?\n/);
+  const blocks: React.ReactNode[] = [];
+  let listItems: string[] = [];
+
+  const flushList = () => {
+    if (listItems.length === 0) return;
+    blocks.push(
+      <ul key={`list-${blocks.length}`} className="my-2 list-disc space-y-1 pl-5">
+        {listItems.map((item, index) => (
+          <li key={`${item}-${index}`}>{renderInlineMarkdown(item)}</li>
+        ))}
+      </ul>
+    );
+    listItems = [];
+  };
+
+  lines.forEach((rawLine, index) => {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushList();
+      return;
+    }
+
+    const listMatch = line.match(/^[-*]\s+(.+)$/);
+    if (listMatch) {
+      listItems.push(listMatch[1]);
+      return;
+    }
+
+    flushList();
+
+    if (/^#{1,3}\s+/.test(line)) {
+      blocks.push(
+        <p key={`heading-${index}`} className="mt-2 font-semibold">
+          {renderInlineMarkdown(line.replace(/^#{1,3}\s+/, ""))}
+        </p>
+      );
+      return;
+    }
+
+    if (/^---+$/.test(line)) {
+      blocks.push(<div key={`rule-${index}`} className="my-3 border-t" />);
+      return;
+    }
+
+    blocks.push(
+      <p key={`p-${index}`} className="my-2 whitespace-pre-wrap">
+        {renderInlineMarkdown(line)}
+      </p>
+    );
+  });
+
+  flushList();
+
+  return <div className="space-y-1">{blocks}</div>;
+}
+
+function renderInlineMarkdown(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code
+          key={index}
+          className="rounded bg-background px-1 py-0.5 text-[0.92em]"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+
+    return <span key={index}>{part}</span>;
+  });
 }
