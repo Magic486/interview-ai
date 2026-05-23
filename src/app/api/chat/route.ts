@@ -6,6 +6,8 @@ import { getIntervieweeSystemPrompt } from "@/lib/ai/prompts/interviewee";
 import { COMPANY_FLOWS } from "@/config/interview-stages";
 import { saveMessage, updateInterviewStage } from "@/lib/ai/actions";
 
+const INIT_TRIGGER = "__INTERVIEW_START__";
+
 export async function POST(req: Request) {
   const { messages, config, mode, interviewId } = await req.json();
 
@@ -13,7 +15,7 @@ export async function POST(req: Request) {
   const currentStageIndex = config.currentStage ?? 0;
   const stage = company.stages[currentStageIndex];
 
-  // 保存用户发送的消息
+  // 保存用户发送的消息（跳过初始触发消息）
   if (interviewId) {
     const lastMsg = messages[messages.length - 1];
     if (lastMsg && lastMsg.role === "user") {
@@ -21,12 +23,14 @@ export async function POST(req: Request) {
         typeof lastMsg.content === "string"
           ? lastMsg.content
           : JSON.stringify(lastMsg.content);
-      await saveMessage({
-        interviewId,
-        role: "candidate",
-        content: contentStr,
-        stage: stage.id,
-      });
+      if (contentStr !== INIT_TRIGGER) {
+        await saveMessage({
+          interviewId,
+          role: "candidate",
+          content: contentStr,
+          stage: stage.id,
+        });
+      }
     }
   }
 

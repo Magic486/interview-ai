@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { UIMessage } from "ai";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Send, Mic, MicOff, Loader2, User, Bot } from "lucide-react";
+import { Send, Mic, MicOff, Loader2, User, Bot, AlertCircle } from "lucide-react";
 import type { InterviewConfig } from "@/types";
 
 interface ChatPanelProps {
@@ -16,6 +16,8 @@ interface ChatPanelProps {
   config: InterviewConfig & { currentStage?: number };
   mode: "normal" | "reversed";
 }
+
+const INIT_TRIGGER = "__INTERVIEW_START__";
 
 function getMessageText(msg: UIMessage): string {
   return msg.parts
@@ -28,27 +30,58 @@ export function ChatPanel({ interviewId, config, mode }: ChatPanelProps) {
   const [listening, setListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-      body: { interviewId, config, mode },
-    }),
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        body: { interviewId, config, mode },
+      }),
+    [interviewId, mode]
+  );
+
+  const { messages, sendMessage, status, error } = useChat({
+    transport,
+    onError: (err) => {
+      console.error("Chat error:", err);
+    },
   });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = (text: string) => {
-    if (!text.trim() || status === "streaming") return;
-    sendMessage({ text: text.trim() });
-  };
+  // 普通模式下自动触发 AI 面试官第一个问题
+  const autoTriggered = useRef(false);
+  useEffect(() => {
+    if (
+      mode === "normal" &&
+      !autoTriggered.current &&
+      status === "ready" &&
+      messages.length === 0
+    ) {
+      autoTriggered.current = true;
+      sendMessage({ text: INIT_TRIGGER });
+    }
+  }, [mode, status, messages.length, sendMessage]);
+
+  const isLoading = status === "streaming" || status === "submitted";
+
+  const handleSend = useCallback(
+    (text: string) => {
+      if (!text.trim() || status === "streaming") return;
+      sendMessage({ text: text.trim() });
+    },
+    [sendMessage, status]
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend(e.currentTarget.value);
-      e.currentTarget.value = "";
+      const text = e.currentTarget.value;
+      if (text.trim()) {
+        handleSend(text);
+        e.currentTarget.value = "";
+      }
     }
   };
 
@@ -62,33 +95,51 @@ export function ChatPanel({ interviewId, config, mode }: ChatPanelProps) {
       const { SpeechService } = await import("@/lib/speech");
       const speech = new SpeechService();
       const text = await speech.startRecognition("zh-CN");
-      const textarea = document.querySelector<HTMLTextAreaElement>("#chat-input");
-      if (textarea) {
-        textarea.value = text;
+      const ta = document.querySelector<HTMLTextAreaElement>("#chat-input");
+      if (ta) {
+        ta.value = text;
         handleSend(text);
-        textarea.value = "";
+        ta.value = "";
       }
     } catch {
-      // 浏览器不支持语音识别
+      // 语音识别不支持
     } finally {
       setListening(false);
     }
   };
 
-  const isLoading = status === "streaming" || status === "submitted";
+  // 过滤掉初始触发消息，不显示在 UI
+  const visibleMessages = messages.filter((msg) => {
+    const text = getMessageText(msg);
+    return text !== INIT_TRIGGER;
+  });
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-            {mode === "normal"
-              ? "面试即将开始，AI 面试官会先向你提问..."
-              : "面试即将开始，你是面试官，请开始向 AI 候选人提问..."}
+        {error && (
+          <div className="flex items-center gap-2 text-destructive text-sm p-3 bg-destructive/10 rounded-lg">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{error.message || "AI 服务连接失败，请检查 API Key"}</span>
           </div>
         )}
 
-        {messages.map((msg) => (
+        {visibleMessages.length === 0 && !error && (
+          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                AI 面试官正在准备题目...
+              </span>
+            ) : mode === "normal" ? (
+              "面试即将开始，AI 面试官会先向你提问..."
+            ) : (
+              "面试即将开始，你是面试官，请开始向 AI 候选人提问..."
+            )}
+          </div>
+        )}
+
+        {visibleMessages.map((msg) => (
           <MessageBubble
             key={msg.id}
             role={msg.role}
@@ -97,7 +148,7 @@ export function ChatPanel({ interviewId, config, mode }: ChatPanelProps) {
           />
         ))}
 
-        {isLoading && messages.length > 0 && (
+        {isLoading && visibleMessages.length > 0 && (
           <div className="flex items-center gap-2 text-muted-foreground text-sm pl-2">
             <Loader2 className="h-4 w-4 animate-spin" />
             AI 思考中...
@@ -163,8 +214,6 @@ function MessageBubble({
 }) {
   if (role === "system" || !content) return null;
 
-  // 正常模式：user=候选人, assistant=面试官
-  // 反转模式：user=面试官(提问者), assistant=候选人
   const isInterviewer =
     mode === "reversed" ? role === "user" : role === "assistant";
 
