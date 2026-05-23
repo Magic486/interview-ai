@@ -43,14 +43,14 @@ export default async function DashboardPage() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="max-w-4xl mx-auto py-12 px-4">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold">历史面试</h1>
+          <h1 className="text-3xl font-extrabold gradient-text mb-1">历史面试</h1>
           <p className="text-muted-foreground">查看你的面试记录和复盘报告</p>
         </div>
         <Link href="/interview/new">
-          <Button className="gap-2">
+          <Button className="gap-2 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all">
             <Plus className="h-4 w-4" />
             新面试
           </Button>
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
       </div>
 
       {interviewsWithScores.length === 0 ? (
-        <Card className="text-center py-12">
+        <Card className="glass border-0 shadow-lg text-center py-12">
           <CardContent className="space-y-4">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
             <CardTitle>暂无面试记录</CardTitle>
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
                   : `/interview/${interview.id}`
               }
             >
-              <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+              <Card className="glass border-0 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div className="space-y-1">
                     <CardTitle className="text-lg">
@@ -103,7 +103,7 @@ export default async function DashboardPage() {
                   <div className="text-right">
                     {interview.status === "completed" && interview.score != null ? (
                       <>
-                        <div className="text-2xl font-bold">{interview.score}</div>
+                        <div className="text-3xl font-extrabold gradient-text">{interview.score}</div>
                         <div className="text-sm text-muted-foreground">总分</div>
                       </>
                     ) : interview.status === "in_progress" ? (

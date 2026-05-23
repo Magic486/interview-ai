@@ -3,31 +3,60 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { GraduationCap, UserRound } from "lucide-react";
+import { GraduationCap, UserRound, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 export function Navbar() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted) {
+    return (
+      <header className="border-b border-white/20 dark:border-white/5 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto flex items-center justify-between h-14 px-4">
+          <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
+            <GraduationCap className="h-6 w-6 text-primary" />
+            <span className="gradient-text">Interview.ai</span>
+          </Link>
+        </div>
+      </header>
+    );
+  }
+
   return (
-    <header className="border-b sticky top-0 bg-background z-50">
+    <header className="border-b border-white/20 dark:border-white/5 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl sticky top-0 z-50 transition-colors">
       <div className="max-w-6xl mx-auto flex items-center justify-between h-14 px-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
-          <GraduationCap className="h-6 w-6" />
-          Interview.ai
+        <Link href="/" className="flex items-center gap-2 font-semibold text-lg group">
+          <GraduationCap className="h-6 w-6 text-primary transition-transform group-hover:scale-110" />
+          <span className="gradient-text">Interview.ai</span>
         </Link>
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-1">
           <Link href="/dashboard">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground transition-colors">
               历史记录
             </Button>
           </Link>
           <Link href="/career">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground transition-colors">
               职业规划
             </Button>
           </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
           <Link href="/profile" aria-label="个人信息">
-            <Avatar className="transition-colors hover:bg-muted">
-              <AvatarFallback>
-                <UserRound className="h-4 w-4" />
+            <Avatar className="h-8 w-8 transition-transform hover:scale-110 ml-1">
+              <AvatarFallback className="bg-primary/10">
+                <UserRound className="h-4 w-4 text-primary" />
               </AvatarFallback>
             </Avatar>
           </Link>

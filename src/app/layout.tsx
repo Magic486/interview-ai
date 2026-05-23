@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/layout/Navbar";
 import "./globals.css";
 
@@ -29,10 +30,13 @@ export default function RootLayout({
       <html
         lang="zh-CN"
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+        suppressHydrationWarning
       >
         <body className="min-h-full flex flex-col">
-          <Navbar />
-          <main className="flex-1">{children}</main>
+          <ThemeProvider>
+            <Navbar />
+            <main className="flex-1">{children}</main>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

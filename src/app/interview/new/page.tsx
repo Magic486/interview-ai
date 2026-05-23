@@ -76,11 +76,14 @@ export default function NewInterviewPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">创建新面试</h1>
+    <div className="max-w-2xl mx-auto py-12 px-4">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-extrabold gradient-text mb-2">创建新面试</h1>
+        <p className="text-muted-foreground">配置你的 AI 模拟面试环境</p>
+      </div>
 
       <div className="space-y-6">
-        <Card>
+        <Card className="glass border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader>
             <CardTitle>面试模式</CardTitle>
             <CardDescription>选择你的角色</CardDescription>
@@ -99,7 +102,7 @@ export default function NewInterviewPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader>
             <CardTitle>目标公司与岗位</CardTitle>
             <CardDescription>选择你心仪的公司和目标岗位</CardDescription>
@@ -166,7 +169,7 @@ export default function NewInterviewPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader>
             <CardTitle>压力面模式</CardTitle>
             <CardDescription>开启后 AI 将持续追问边界条件和缺陷</CardDescription>
@@ -179,7 +182,7 @@ export default function NewInterviewPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader>
             <CardTitle>简历（可选）</CardTitle>
             <CardDescription>
@@ -207,7 +210,7 @@ export default function NewInterviewPage() {
 
         <Button
           size="lg"
-          className="w-full"
+          className="w-full py-6 text-base rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:scale-[1.02]"
           onClick={handleStart}
           disabled={!role || loading}
         >
