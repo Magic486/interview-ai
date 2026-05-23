@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { ChatPanel } from "@/components/interview/ChatPanel";
 import { StageIndicator } from "@/components/interview/StageIndicator";
@@ -35,16 +35,11 @@ export default function InterviewPage() {
   );
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [showEndDialog, setShowEndDialog] = useState(false);
-  const [codeEditorVisible, setCodeEditorVisible] = useState(false);
 
   const flow = COMPANY_FLOWS[company] ?? COMPANY_FLOWS["bytedance"];
   const currentStage = flow.stages[currentStageIndex];
   const totalStages = flow.stages.length;
-
-  // 算法面时显示代码编辑器
-  useEffect(() => {
-    setCodeEditorVisible(currentStage?.id === "algorithm");
-  }, [currentStageIndex, currentStage]);
+  const codeEditorVisible = currentStage?.id === "algorithm";
 
   // 处理面试结束
   const handleEndInterview = useCallback(() => {
