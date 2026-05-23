@@ -4,6 +4,7 @@ import { interviewTools } from "@/lib/ai/interview-flow";
 import { getInterviewerSystemPrompt } from "@/lib/ai/prompts/interviewer";
 import { getIntervieweeSystemPrompt } from "@/lib/ai/prompts/interviewee";
 import { COMPANY_FLOWS } from "@/config/interview-stages";
+import { saveMessage, updateInterviewStage } from "@/lib/ai/actions";
 
 export async function POST(req: Request) {
   const { messages, config, mode } = await req.json();
@@ -11,6 +12,20 @@ export async function POST(req: Request) {
   const company = COMPANY_FLOWS[config.company] ?? COMPANY_FLOWS["bytedance"];
   const currentStageIndex = config.currentStage ?? 0;
   const stage = company.stages[currentStageIndex];
+  const interviewId = config.interviewId;
+
+  // 保存用户发送的消息
+  if (interviewId) {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg && lastMsg.role === "user") {
+      await saveMessage({
+        interviewId,
+        role: "candidate",
+        content: typeof lastMsg.content === "string" ? lastMsg.content : JSON.stringify(lastMsg.content),
+        stage: stage.id,
+      });
+    }
+  }
 
   const systemPrompt =
     mode === "reversed"
@@ -39,6 +54,54 @@ export async function POST(req: Request) {
     system: systemPrompt,
     messages,
     tools: interviewTools,
+    onStepFinish: async (event) => {
+      if (!interviewId) return;
+
+      // 处理工具调用结果
+      for (const toolCall of event.toolCalls) {
+        const tc = toolCall as { toolName?: string; input?: Record<string, unknown> };
+        if (tc.toolName === "advanceStage" && tc.input) {
+          const nextStage = tc.input.nextStage as string;
+          const isCompleted = nextStage === "completed";
+          await updateInterviewStage(
+            interviewId,
+            isCompleted ? stage.id : nextStage,
+            isCompleted ? "completed" : undefined
+          );
+        }
+
+        if (tc.toolName === "evaluateAnswer" && tc.input) {
+          const { score, dimension, brief } = tc.input as {
+            score: number;
+            dimension: string;
+            brief: string;
+          };
+          // 更新最近一条候选人消息的评分
+          await saveMessage({
+            interviewId,
+            role: "system",
+            content: `[${dimension}评分: ${score}/10] ${brief}`,
+            stage: stage.id,
+            score,
+            feedback: brief,
+          });
+        }
+      }
+    },
+    onFinish: async (event) => {
+      if (!interviewId) return;
+
+      // 保存 AI 回复
+      const aiResponse = event.text;
+      if (aiResponse) {
+        await saveMessage({
+          interviewId,
+          role: "interviewer",
+          content: aiResponse,
+          stage: stage.id,
+        });
+      }
+    },
   });
 
   return result.toTextStreamResponse();
