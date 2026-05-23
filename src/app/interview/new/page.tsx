@@ -24,9 +24,11 @@ export default function NewInterviewPage() {
   const [mode, setMode] = useState<InterviewMode>("normal");
   const [company, setCompany] = useState("bytedance");
   const [role, setRole] = useState("");
+  const [stageIndex, setStageIndex] = useState(0);
   const [stressMode, setStressMode] = useState(false);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const flow = COMPANY_FLOWS[company] ?? COMPANY_FLOWS.bytedance;
 
   const handleStart = async () => {
     if (!role) return;
@@ -38,12 +40,14 @@ export default function NewInterviewPage() {
         company,
         mode,
         stressMode,
+        stageIndex,
       });
 
       const params = new URLSearchParams({
         mode,
         role,
         company,
+        stage: String(stageIndex),
         stress: String(stressMode),
       });
 
@@ -86,7 +90,14 @@ export default function NewInterviewPage() {
           <CardContent className="space-y-4">
             <div>
               <Label>公司</Label>
-              <Select value={company} onValueChange={(v) => v && setCompany(v)}>
+              <Select
+                value={company}
+                onValueChange={(v) => {
+                  if (!v) return;
+                  setCompany(v);
+                  setStageIndex(0);
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -98,6 +109,27 @@ export default function NewInterviewPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>面试部分</Label>
+              <Select
+                value={String(stageIndex)}
+                onValueChange={(v) => v && setStageIndex(Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="选择本次面试部分" />
+                </SelectTrigger>
+                <SelectContent>
+                  {flow.stages.map((stage, index) => (
+                    <SelectItem key={`${stage.id}-${index}`} value={String(index)}>
+                      {stage.name} · {stage.duration} 分钟
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-2 text-xs text-muted-foreground">
+                本次只进行所选部分，不再自动推进完整流程。
+              </p>
             </div>
             <div>
               <Label>岗位</Label>

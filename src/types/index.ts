@@ -10,6 +10,7 @@ export interface InterviewConfig {
   mode: InterviewMode;
   stressMode: boolean;
   resumeId?: string;
+  stageIndex?: number;
 }
 
 export interface Interview {

@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { generateObject } from "ai";
 import { eq, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { COMPANY_FLOWS } from "@/config/interview-stages";
 import {
   resumes,
   interviews,
@@ -35,6 +36,12 @@ export async function createInterview(
   userId?: string
 ): Promise<{ interviewId: string }> {
   const id = randomUUID();
+  const flow = COMPANY_FLOWS[config.company] ?? COMPANY_FLOWS.bytedance;
+  const stageIndex = Math.min(
+    Math.max(config.stageIndex ?? 0, 0),
+    flow.stages.length - 1
+  );
+  const firstStage = flow.stages[stageIndex]?.id ?? "algorithm";
 
   db.insert(interviews).values({
     id,
@@ -44,7 +51,7 @@ export async function createInterview(
     mode: config.mode,
     stressMode: config.stressMode,
     status: "in_progress",
-    currentStage: "algorithm",
+    currentStage: firstStage,
     createdAt: new Date(),
     resumeId: config.resumeId || null,
   }).run();
