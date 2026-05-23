@@ -16,19 +16,42 @@ import {
 } from "@/components/ui/select";
 import { Upload } from "lucide-react";
 import { COMPANY_FLOWS, ROLES } from "@/config/interview-stages";
+import { createInterview } from "@/lib/ai/actions";
+import type { InterviewMode } from "@/types";
 
 export default function NewInterviewPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"normal" | "reversed">("normal");
+  const [mode, setMode] = useState<InterviewMode>("normal");
   const [company, setCompany] = useState("bytedance");
   const [role, setRole] = useState("");
   const [stressMode, setStressMode] = useState(false);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!role) return;
-    const params = new URLSearchParams({ company, role, mode, stress: String(stressMode) });
-    router.push(`/interview/new/preview?${params.toString()}`);
+    setLoading(true);
+
+    try {
+      const { interviewId } = await createInterview({
+        role,
+        company,
+        mode,
+        stressMode,
+      });
+
+      const params = new URLSearchParams({
+        mode,
+        role,
+        company,
+        stress: String(stressMode),
+      });
+
+      router.push(`/interview/${interviewId}?${params.toString()}`);
+    } catch (err) {
+      console.error("创建面试失败:", err);
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,7 +65,7 @@ export default function NewInterviewPage() {
             <CardDescription>选择你的角色</CardDescription>
           </CardHeader>
           <CardContent>
-            <RadioGroup value={mode} onValueChange={(v) => setMode(v as "normal" | "reversed")}>
+            <RadioGroup value={mode} onValueChange={(v) => setMode(v as InterviewMode)}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="normal" id="normal" />
                 <Label htmlFor="normal">我是候选人（AI 面试我）</Label>
@@ -131,8 +154,13 @@ export default function NewInterviewPage() {
           </CardContent>
         </Card>
 
-        <Button size="lg" className="w-full" onClick={handleStart} disabled={!role}>
-          开始面试
+        <Button
+          size="lg"
+          className="w-full"
+          onClick={handleStart}
+          disabled={!role || loading}
+        >
+          {loading ? "创建中..." : "开始面试"}
         </Button>
       </div>
     </div>
