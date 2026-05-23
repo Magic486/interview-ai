@@ -1,7 +1,7 @@
 import {
   convertToModelMessages,
   streamText,
-  type TextStreamPart,
+  stepCountIs,
   type UIMessage,
 } from "ai";
 import { interviewModel } from "@/lib/ai/client";
@@ -45,77 +45,6 @@ function toModelInputMessages(messages: UIMessage[]) {
     void id;
     return [messageWithoutId];
   });
-}
-
-function getFallbackFollowUpQuestion(stage: { id: string; name: string; focus: string }) {
-  if (stage.id === "algorithm") {
-    return "我们继续深入一下：如果把输入规模放大，或者出现极端边界条件，你会如何分析复杂度并保证实现的稳定性？";
-  }
-
-  if (stage.id === "project") {
-    return "请你围绕刚才的回答补充一个可验证的落地细节：你会用什么指标或证据证明这个方案确实有效？";
-  }
-
-  if (stage.id === "cross") {
-    return "我们换一个更综合的场景：如果这个方案上线后出现性能或稳定性问题，你会如何定位、分层排查并推动解决？";
-  }
-
-  if (stage.id === "hr") {
-    return "我们继续聊职业选择：结合你的经历和目标，你为什么认为这个岗位适合你，你目前最大的短板准备怎么补？";
-  }
-
-  return `我们继续围绕${stage.name}考察：请你结合一个具体经历，进一步说明你的思考过程和取舍依据？`;
-}
-
-function hasQuestion(text: string) {
-  return /[？?]/.test(text);
-}
-
-function isIntentionalEnding(text: string) {
-  return /结束面试|进入复盘|点击结束|本次面试到这里|可以结束/i.test(text);
-}
-
-function ensureFollowUpQuestionTransform(
-  enabled: boolean,
-  fallbackQuestion: string
-) {
-  return () => {
-    let text = "";
-    let lastTextId = "";
-
-    return new TransformStream<
-      TextStreamPart<typeof interviewTools>,
-      TextStreamPart<typeof interviewTools>
-    >({
-      transform(part, controller) {
-        if (!enabled) {
-          controller.enqueue(part);
-          return;
-        }
-
-        if (part.type === "text-delta") {
-          text += part.text;
-          lastTextId = part.id;
-        }
-
-        if (
-          part.type === "text-end" &&
-          lastTextId &&
-          !hasQuestion(text) &&
-          !isIntentionalEnding(text)
-        ) {
-          controller.enqueue({
-            type: "text-delta",
-            id: lastTextId,
-            text: `\n\n${fallbackQuestion}`,
-          });
-          text += `\n\n${fallbackQuestion}`;
-        }
-
-        controller.enqueue(part);
-      },
-    });
-  };
 }
 
 export async function POST(req: Request) {
@@ -193,10 +122,7 @@ export async function POST(req: Request) {
       system: systemPrompt,
       messages: modelMessages,
       tools,
-      experimental_transform: ensureFollowUpQuestionTransform(
-        mode === "normal",
-        getFallbackFollowUpQuestion(stage)
-      ),
+      stopWhen: mode === "normal" ? stepCountIs(5) : stepCountIs(1),
       onError: (event) => {
         console.error("[chat] stream error:", event.error);
       },
