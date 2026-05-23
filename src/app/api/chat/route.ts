@@ -2,7 +2,6 @@ import {
   convertToModelMessages,
   streamText,
   stepCountIs,
-  type TextStreamPart,
   type UIMessage,
 } from "ai";
 import { interviewModel } from "@/lib/ai/client";
@@ -46,62 +45,6 @@ function toModelInputMessages(messages: UIMessage[]) {
     void id;
     return [messageWithoutId];
   });
-}
-
-function ensureQuestionTransform() {
-  let text = "";
-  let lastTextId = "";
-  let pendingCheck = false;
-
-  return (_options: { tools: typeof interviewTools; stopStream: () => void }) =>
-    new TransformStream<
-      TextStreamPart<typeof interviewTools>,
-      TextStreamPart<typeof interviewTools>
-    >({
-      transform(part, controller) {
-        if (part.type === "text-start") {
-          text = "";
-          lastTextId = part.id;
-          pendingCheck = false;
-        }
-
-        if (part.type === "text-delta") {
-          text += part.text;
-          lastTextId = part.id;
-        }
-
-        if (part.type === "text-end") {
-          pendingCheck = true;
-          controller.enqueue(part);
-          return;
-        }
-
-        if (pendingCheck) {
-          const isMoreContent =
-            part.type === "start-step" ||
-            part.type === "text-start" ||
-            part.type.startsWith("tool-");
-
-          if (isMoreContent) {
-            pendingCheck = false;
-          } else if (part.type === "finish-step" || part.type === "finish") {
-            if (
-              lastTextId &&
-              !/[？?]/.test(text) &&
-              !/结束面试|进入复盘|面试到这里|可以结束/i.test(text)
-            ) {
-              const qId = lastTextId + "-q";
-              controller.enqueue({ type: "text-start", id: qId });
-              controller.enqueue({ type: "text-delta", id: qId, text: "\n\n我们换个话题——请回答下一题：" } as TextStreamPart<typeof interviewTools>);
-              controller.enqueue({ type: "text-end", id: qId });
-            }
-            pendingCheck = false;
-          }
-        }
-
-        controller.enqueue(part);
-      },
-    });
 }
 
 export async function POST(req: Request) {
@@ -179,7 +122,6 @@ export async function POST(req: Request) {
       system: systemPrompt,
       messages: modelMessages,
       tools,
-      experimental_transform: ensureQuestionTransform(),
       stopWhen: mode === "normal" ? stepCountIs(5) : stepCountIs(1),
       onError: (event) => {
         console.error("[chat] stream error:", event.error);
