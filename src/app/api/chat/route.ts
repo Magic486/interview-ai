@@ -2,6 +2,7 @@ import {
   convertToModelMessages,
   streamText,
   stepCountIs,
+  type TextStreamPart,
   type UIMessage,
 } from "ai";
 import { interviewModel } from "@/lib/ai/client";
@@ -45,6 +46,40 @@ function toModelInputMessages(messages: UIMessage[]) {
     void id;
     return [messageWithoutId];
   });
+}
+
+function ensureQuestionTransform() {
+  let text = "";
+  let lastTextId = "";
+
+  return (_options: { tools: typeof interviewTools; stopStream: () => void }) =>
+    new TransformStream<
+      TextStreamPart<typeof interviewTools>,
+      TextStreamPart<typeof interviewTools>
+    >({
+      transform(part, controller) {
+        if (part.type === "text-delta") {
+          text += part.text;
+          lastTextId = part.id;
+        }
+
+        if (
+          part.type === "text-end" &&
+          lastTextId &&
+          !/[？?]/.test(text) &&
+          !/结束面试|进入复盘|面试到这里|可以结束/i.test(text)
+        ) {
+          controller.enqueue({
+            type: "text-delta",
+            id: lastTextId,
+            text: "\n\n我们换个话题——请回答下一题：",
+          });
+          text += "\n\n我们换个话题——请回答下一题：";
+        }
+
+        controller.enqueue(part);
+      },
+    });
 }
 
 export async function POST(req: Request) {
@@ -122,6 +157,7 @@ export async function POST(req: Request) {
       system: systemPrompt,
       messages: modelMessages,
       tools,
+      experimental_transform: ensureQuestionTransform(),
       stopWhen: mode === "normal" ? stepCountIs(5) : stepCountIs(1),
       onError: (event) => {
         console.error("[chat] stream error:", event.error);
