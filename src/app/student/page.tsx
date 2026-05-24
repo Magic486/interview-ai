@@ -85,7 +85,7 @@ export default function StudentPathPage() {
   return (
     <div className="min-h-[calc(100vh-3.5rem)]">
       {/* Header */}
-      <header className="sticky top-14 z-40 bg-white/80 backdrop-blur-md border-b">
+      <header className="sticky top-14 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b dark:border-white/5">
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
