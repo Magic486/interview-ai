@@ -43,7 +43,7 @@ export async function createInterview(
   );
   const firstStage = flow.stages[stageIndex]?.id ?? "algorithm";
 
-  db.insert(interviews).values({
+  await db.insert(interviews).values({
     id,
     userId: userId || "anonymous",
     role: config.role,
@@ -54,7 +54,7 @@ export async function createInterview(
     currentStage: firstStage,
     createdAt: new Date(),
     resumeId: config.resumeId || null,
-  }).run();
+  });
 
   return { interviewId: id };
 }
@@ -68,7 +68,7 @@ export async function saveMessage(data: {
   score?: number;
   feedback?: string;
 }): Promise<void> {
-  db.insert(messages).values({
+  await db.insert(messages).values({
     id: randomUUID(),
     interviewId: data.interviewId,
     role: data.role,
@@ -78,7 +78,7 @@ export async function saveMessage(data: {
     score: data.score || null,
     feedback: data.feedback || null,
     createdAt: new Date(),
-  }).run();
+  });
 }
 
 export async function getMessages(interviewId: string) {
@@ -86,8 +86,7 @@ export async function getMessages(interviewId: string) {
     .select()
     .from(messages)
     .where(eq(messages.interviewId, interviewId))
-    .orderBy(messages.createdAt)
-    .all();
+    .orderBy(messages.createdAt);
 }
 
 export async function updateInterviewStage(
@@ -99,10 +98,10 @@ export async function updateInterviewStage(
   if (status) {
     updateData.status = status;
   }
-  db.update(interviews)
+  await db
+    .update(interviews)
     .set(updateData as never)
-    .where(eq(interviews.id, interviewId))
-    .run();
+    .where(eq(interviews.id, interviewId));
 }
 
 // ========== 简历解析 (ArkClaw Skill 嵌入点) ==========
@@ -125,7 +124,7 @@ ${resumeText}`,
 
   if (userId) {
     const id = randomUUID();
-    db.insert(resumes).values({
+    await db.insert(resumes).values({
       id,
       userId,
       rawText: resumeText,
@@ -133,7 +132,7 @@ ${resumeText}`,
       parsedExperience: JSON.stringify(parsed.experience),
       education: parsed.education,
       createdAt: new Date(),
-    }).run();
+    });
   }
 
   return { ...parsed, rawText: resumeText };
@@ -185,14 +184,14 @@ export async function generateLearningPath(
 
   const id = randomUUID();
 
-  db.insert(learningPaths).values({
+  await db.insert(learningPaths).values({
     id,
     userId,
     targetRole,
     gapAnalysis: JSON.stringify(skillGap),
     steps: JSON.stringify(result.object.steps),
     createdAt: new Date(),
-  }).run();
+  });
 
   return {
     id,
@@ -208,11 +207,12 @@ export async function generateLearningPath(
 }
 
 export async function getLearningPath(pathId: string) {
-  const row = db
+  const rows = await db
     .select()
     .from(learningPaths)
-    .where(eq(learningPaths.id, pathId))
-    .get();
+    .where(eq(learningPaths.id, pathId));
+
+  const row = rows[0];
 
   if (!row) return null;
 
@@ -232,11 +232,11 @@ export async function generateReview(
   interviewId: string
 ): Promise<ReviewReport> {
   const messageList = await getMessages(interviewId);
-  const interview = db
+  const interviewRows = await db
     .select()
     .from(interviews)
-    .where(eq(interviews.id, interviewId))
-    .get();
+    .where(eq(interviews.id, interviewId));
+  const interview = interviewRows[0];
 
   if (messageList.length === 0) {
     throw new Error("该面试没有对话记录");
@@ -309,14 +309,15 @@ passDecision 只能是 strong_pass、pass、borderline、fail。resources 必须
 
   const report = await parseReviewReportWithRepair(result.text);
 
-  const existing = db
+  const existingRows = await db
     .select()
     .from(reviews)
-    .where(eq(reviews.interviewId, interviewId))
-    .get();
+    .where(eq(reviews.interviewId, interviewId));
+  const existing = existingRows[0];
 
   if (existing) {
-    db.update(reviews)
+    await db
+      .update(reviews)
       .set({
         overallScore: report.overallScore,
         dimensionScores: JSON.stringify(report.dimensionScores),
@@ -325,10 +326,9 @@ passDecision 只能是 strong_pass、pass、borderline、fail。resources 必须
         weaknesses: JSON.stringify(report.top3Weaknesses),
         improvementPlan: JSON.stringify(report.improvementPlan),
       })
-      .where(eq(reviews.id, existing.id))
-      .run();
+      .where(eq(reviews.id, existing.id));
   } else {
-    db.insert(reviews).values({
+    await db.insert(reviews).values({
       id: randomUUID(),
       interviewId,
       overallScore: report.overallScore,
@@ -338,24 +338,24 @@ passDecision 只能是 strong_pass、pass、borderline、fail。resources 必须
       weaknesses: JSON.stringify(report.top3Weaknesses),
       improvementPlan: JSON.stringify(report.improvementPlan),
       createdAt: new Date(),
-    }).run();
+    });
   }
 
-  db.update(interviews)
+  await db
+    .update(interviews)
     .set({ status: "completed" as never })
-    .where(eq(interviews.id, interviewId))
-    .run();
+    .where(eq(interviews.id, interviewId));
 
   return report;
 }
 
 export async function getReview(interviewId: string) {
-  const row = db
+  const rows = await db
     .select()
     .from(reviews)
-    .where(eq(reviews.interviewId, interviewId))
-    .get();
+    .where(eq(reviews.interviewId, interviewId));
 
+  const row = rows[0];
   if (!row) return null;
 
   const baseReport = {
@@ -466,6 +466,5 @@ export async function getUserInterviews(userId: string) {
     .select()
     .from(interviews)
     .where(eq(interviews.userId, userId))
-    .orderBy(desc(interviews.createdAt))
-    .all();
+    .orderBy(desc(interviews.createdAt));
 }

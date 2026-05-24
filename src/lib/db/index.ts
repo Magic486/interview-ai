@@ -1,22 +1,21 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { createClient, type Client } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
 
 type DrizzleDb = ReturnType<typeof drizzle>;
 
 let _db: DrizzleDb | null = null;
+let _client: Client | null = null;
 
 function initDb(): DrizzleDb {
-  // 动态 require，避免构建时加载 better-sqlite3 原生模块
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require("better-sqlite3");
+  const dbUrl = process.env.DATABASE_URL || "file:./interview.db";
 
-  const sqlite = new Database(
-    process.env.DATABASE_URL?.replace("file:", "") || "./interview.db"
-  );
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
+  _client = createClient({
+    url: dbUrl,
+  });
 
-  sqlite.exec(`
+  // 建表（libsql 执行多条语句需要逐条执行）
+  _client.execute(`
     CREATE TABLE IF NOT EXISTS resumes (
       id TEXT PRIMARY KEY,
       user_id TEXT,
@@ -26,8 +25,9 @@ function initDb(): DrizzleDb {
       education TEXT,
       file_url TEXT,
       created_at INTEGER NOT NULL
-    );
-
+    )
+  `);
+  _client.execute(`
     CREATE TABLE IF NOT EXISTS interviews (
       id TEXT PRIMARY KEY,
       user_id TEXT,
@@ -39,8 +39,9 @@ function initDb(): DrizzleDb {
       status TEXT NOT NULL DEFAULT 'in_progress',
       current_stage TEXT NOT NULL,
       created_at INTEGER NOT NULL
-    );
-
+    )
+  `);
+  _client.execute(`
     CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,
       interview_id TEXT NOT NULL REFERENCES interviews(id) ON DELETE CASCADE,
@@ -51,8 +52,9 @@ function initDb(): DrizzleDb {
       score INTEGER,
       feedback TEXT,
       created_at INTEGER NOT NULL
-    );
-
+    )
+  `);
+  _client.execute(`
     CREATE TABLE IF NOT EXISTS reviews (
       id TEXT PRIMARY KEY,
       interview_id TEXT NOT NULL UNIQUE REFERENCES interviews(id) ON DELETE CASCADE,
@@ -63,8 +65,9 @@ function initDb(): DrizzleDb {
       per_question_analysis TEXT,
       improvement_plan TEXT,
       created_at INTEGER NOT NULL
-    );
-
+    )
+  `);
+  _client.execute(`
     CREATE TABLE IF NOT EXISTS learning_paths (
       id TEXT PRIMARY KEY,
       user_id TEXT,
@@ -72,10 +75,10 @@ function initDb(): DrizzleDb {
       gap_analysis TEXT NOT NULL,
       steps TEXT,
       created_at INTEGER NOT NULL
-    );
+    )
   `);
 
-  return drizzle(sqlite, { schema });
+  return drizzle(_client, { schema });
 }
 
 /**
