@@ -77,12 +77,16 @@ export async function POST(req: Request) {
       if (lastMsg?.role === "user") {
         const contentStr = getMessageText(lastMsg);
         if (contentStr && contentStr !== INIT_TRIGGER) {
-          await saveMessage({
-            interviewId,
-            role: mode === "reversed" ? "interviewer" : "candidate",
-            content: contentStr,
-            stage: stage.id,
-          });
+          try {
+            await saveMessage({
+              interviewId,
+              role: mode === "reversed" ? "interviewer" : "candidate",
+              content: contentStr,
+              stage: stage.id,
+            });
+          } catch {
+            // 外键约束等 DB 错误不阻断对话
+          }
         }
       }
     }
@@ -152,14 +156,18 @@ export async function POST(req: Request) {
                 dimension: string;
                 brief: string;
               };
-              await saveMessage({
-                interviewId,
-                role: "system",
-                content: `[${dimension} 评分: ${score}/10] ${brief}`,
-                stage: stage.id,
-                score,
-                feedback: brief,
-              });
+              try {
+                await saveMessage({
+                  interviewId,
+                  role: "system",
+                  content: `[${dimension} 评分: ${score}/10] ${brief}`,
+                  stage: stage.id,
+                  score,
+                  feedback: brief,
+                });
+              } catch {
+                // DB 错误不阻断 Agent 推理
+              }
             }
           }
         } catch (error) {
@@ -172,12 +180,16 @@ export async function POST(req: Request) {
         try {
           const aiResponse = event.text;
           if (aiResponse) {
-            await saveMessage({
-              interviewId,
-              role: mode === "reversed" ? "candidate" : "interviewer",
-              content: aiResponse,
-              stage: stage.id,
-            });
+            try {
+              await saveMessage({
+                interviewId,
+                role: mode === "reversed" ? "candidate" : "interviewer",
+                content: aiResponse,
+                stage: stage.id,
+              });
+            } catch {
+              // DB 错误不阻断对话
+            }
           }
         } catch (error) {
           console.error("[chat] onFinish error:", error);
