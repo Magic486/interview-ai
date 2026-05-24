@@ -8,7 +8,7 @@ let _db: DrizzleDb | null = null;
 let _client: Client | null = null;
 
 function initDb(): DrizzleDb {
-  const dbUrl = process.env.DATABASE_URL || "file:./interview.db";
+  const dbUrl = process.env.DATABASE_URL || "file:/tmp/interview.db";
 
   _client = createClient({
     url: dbUrl,
