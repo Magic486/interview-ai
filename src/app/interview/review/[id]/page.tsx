@@ -1,3 +1,7 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -18,40 +22,73 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { generateReview, getReview } from "@/lib/ai/actions";
 import { ReviewExportButtons } from "@/components/review/ReviewExportButtons";
 import type { DimensionScores, ReviewReport } from "@/types";
 
-export const dynamic = "force-dynamic";
+export default function ReviewPage() {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const id = params.id as string;
+  const roleText = searchParams.get("role") || "目标岗位";
+  const companyText = searchParams.get("company") || "目标公司";
+  const isReversed = searchParams.get("mode") === "reversed";
 
-interface ReviewPageProps {
-  params: Promise<{ id: string }>;
-  searchParams?: Promise<{
-    role?: string;
-    company?: string;
-    mode?: string;
-  }>;
-}
+  const [report, setReport] = useState<ReviewReport | null>(null);
+  const [generatedNow, setGeneratedNow] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-export default async function ReviewPage({
-  params,
-  searchParams,
-}: ReviewPageProps) {
-  const { id } = await params;
-  const query = searchParams ? await searchParams : {};
-  let report: ReviewReport | null = null;
-  let generatedNow = false;
-  let errorMessage: string | null = null;
+  useEffect(() => {
+    async function loadReview() {
+      try {
+        // Try to get existing review first
+        const getRes = await fetch(`/api/interview/review/${id}`);
+        if (getRes.ok) {
+          const data = await getRes.json();
+          if (data.report) {
+            setReport(data.report);
+            setLoading(false);
+            return;
+          }
+        }
 
-  try {
-    report = await getReview(id);
-    if (!report) {
-      report = await generateReview(id);
-      generatedNow = true;
+        // No existing review, generate one
+        const genRes = await fetch(`/api/interview/review/${id}`, {
+          method: "POST",
+        });
+        if (!genRes.ok) {
+          const errData = await genRes.json().catch(() => ({}));
+          throw new Error(errData.error || `生成复盘报告失败 (HTTP ${genRes.status})`);
+        }
+        const genData = await genRes.json();
+        setReport(genData.report);
+        setGeneratedNow(true);
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error ? error.message : "复盘报告生成失败，请稍后重试"
+        );
+      } finally {
+        setLoading(false);
+      }
     }
-  } catch (error) {
-    errorMessage =
-      error instanceof Error ? error.message : "复盘报告生成失败，请稍后重试";
+    loadReview();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-4xl px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold">复盘报告</h1>
+          <p className="mt-2 text-muted-foreground">正在生成复盘报告，请稍候...</p>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <RefreshCw className="h-8 w-8 mx-auto mb-4 animate-spin" />
+            <p>AI 正在分析你的面试表现...</p>
+          </CardContent>
+        </Card>
+      </main>
+    );
   }
 
   if (!report) {
@@ -85,9 +122,6 @@ export default async function ReviewPage({
   }
 
   const verdict = getVerdictMeta(report);
-  const roleText = query.role || "目标岗位";
-  const companyText = query.company || "目标公司";
-  const isReversed = query.mode === "reversed";
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
@@ -193,8 +227,8 @@ export default async function ReviewPage({
           </CardTitle>
           <CardDescription>
             {isReversed
-              ? "按“你的提问 → AI 候选人回答 → 提问质量 → 更好追问”拆解"
-              : "按“面试官问题 → 你的回答 → 问题定位 → 示范回答”拆解"}
+              ? "按「你的提问 → AI 候选人回答 → 提问质量 → 更好追问」拆解"
+              : "按「面试官问题 → 你的回答 → 问题定位 → 示范回答」拆解"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

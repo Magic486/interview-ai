@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/select";
 import { Upload } from "lucide-react";
 import { COMPANY_FLOWS, ROLES } from "@/config/interview-stages";
-import { createInterview } from "@/lib/ai/actions";
 import { loadCareerProfile } from "@/lib/career-profile";
 import {
   buildCandidateProfileSummary,
@@ -41,13 +40,18 @@ export default function NewInterviewPage() {
     setLoading(true);
 
     try {
-      const { interviewId } = await createInterview({
-        role,
-        company,
-        mode,
-        stressMode,
-        stageIndex,
+      const res = await fetch("/api/interview/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          config: { role, company, mode, stressMode, stageIndex },
+        }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `创建面试失败 (HTTP ${res.status})`);
+      }
+      const { interviewId } = await res.json();
       const profile = loadCareerProfile();
       const candidateProfileSummary = buildCandidateProfileSummary(profile);
       const resumeSummary = await buildResumeSummaryFromFile(resumeFile);
