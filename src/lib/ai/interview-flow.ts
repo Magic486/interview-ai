@@ -63,10 +63,6 @@ export const evaluateAnswerSchema = z.object({
     ),
 });
 
-export const stressModeSchema = z.object({
-  enabled: z.boolean().describe("是否开启压力面模式"),
-});
-
 export const searchInterviewKnowledgeSchema = z.object({
   stage: z
     .enum(["algorithm", "project", "cross", "hr", "any"])
@@ -120,17 +116,6 @@ export const interviewTools = {
         move_on: "此题已考察充分，从题库选一道和当前阶段匹配的新题继续面试",
         new_topic: "当前方向已覆盖，从题库选一道完全不同方向的新题拓宽面试广度",
       }[suggestedAction],
-    }),
-  }),
-  stressMode: tool({
-    description:
-      "根据候选人表现切换压力面模式。当候选人回答过于轻松或连续答对时，可开启压力面增加难度；当候选人明显紧张或表现不佳时，可关闭压力面。",
-    inputSchema: stressModeSchema,
-    execute: async ({ enabled }) => ({
-      stressMode: enabled,
-      instruction: enabled
-        ? "压力面已开启：持续追问边界条件、反例和深层原理，不接受表面回答"
-        : "压力面已关闭：恢复常规面试节奏，但仍需保持专业性",
     }),
   }),
 };
