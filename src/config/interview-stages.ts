@@ -69,6 +69,13 @@ export const COMPANY_FLOWS: Record<string, CompanyFlow> = {
     style: "技术面试侧重基础扎实度，喜欢从底层原理开始追问。注重项目经验的真实性和深度，会追问技术选型背后的考量。面试氛围相对轻松但问题不简单，期待候选人有产品思维。",
     stages: [
       {
+        id: "algorithm",
+        name: "算法面",
+        duration: 45,
+        focus: "算法与编程基础",
+        topics: "1-2道中等难度算法题，侧重链表、二叉树、动态规划",
+      },
+      {
         id: "project",
         name: "技术一面",
         duration: 45,
@@ -90,7 +97,7 @@ export const COMPANY_FLOWS: Record<string, CompanyFlow> = {
         topics: "沟通能力、团队协作、职业规划、文化适应",
       },
     ],
-    stressAvailable: ["project"],
+    stressAvailable: ["algorithm", "project"],
   },
   meituan: {
     name: "美团",
