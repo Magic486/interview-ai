@@ -1,6 +1,6 @@
 [project]
 requires = ["nodejs-24"]
-
+#hello？？
 [dev]
 build = ["bash", "./scripts/prepare.sh"]
 run = ["bash", "./scripts/dev.sh"]
