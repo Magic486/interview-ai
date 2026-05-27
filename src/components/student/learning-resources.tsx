@@ -62,9 +62,9 @@ function parseJSON(text: string): LearningResources | null {
 }
 
 const difficultyColor: Record<string, string> = {
-  入门: "bg-emerald-100 text-emerald-700",
-  进阶: "bg-amber-100 text-amber-700",
-  高级: "bg-red-100 text-red-700",
+  入门: "bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300",
+  进阶: "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300",
+  高级: "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300",
 };
 
 export function LearningResourcesView({
@@ -158,11 +158,11 @@ export function LearningResourcesView({
           </CardHeader>
           <CardContent>
             {rawText ? (
-              <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 font-mono whitespace-pre-wrap max-h-96 overflow-y-auto">
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 text-sm text-slate-600 dark:text-slate-300 font-mono whitespace-pre-wrap max-h-96 overflow-y-auto">
                 {rawText}
               </div>
             ) : (
-              <div className="flex items-center gap-3 text-slate-400">
+              <div className="flex items-center gap-3 text-slate-400 dark:text-slate-500">
                 <Spinner className="w-5 h-5" />
                 <span>正在搜索优质学习资源...</span>
               </div>
@@ -185,7 +185,7 @@ export function LearningResourcesView({
           </CardHeader>
           <CardContent>
             {error && (
-              <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-lg text-sm">
                 {error}
               </div>
             )}
@@ -206,10 +206,10 @@ export function LearningResourcesView({
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
           学习资源推荐
         </h2>
-        <p className="text-slate-500 text-sm">
+        <p className="text-slate-500 dark:text-slate-400 text-sm">
           为「{career}」方向精心推荐的学习材料
         </p>
       </div>
@@ -240,13 +240,13 @@ export function LearningResourcesView({
               <CardContent className="pt-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-slate-800">
+                    <h3 className="font-semibold text-slate-800 dark:text-slate-100">
                       {book.title}
                     </h3>
-                    <p className="text-sm text-slate-500 mt-0.5">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                       {book.author}
                     </p>
-                    <p className="text-sm text-slate-600 mt-2">
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">
                       {book.description}
                     </p>
                   </div>
@@ -288,10 +288,10 @@ export function LearningResourcesView({
                           <span>搜索</span>
                         </a>
                       </div>
-                      <p className="text-sm text-slate-500 mt-0.5">
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                         来源：{article.source}
                       </p>
-                      <p className="text-sm text-slate-600 mt-2">
+                      <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">
                         {article.description}
                       </p>
                     </div>
@@ -331,10 +331,10 @@ export function LearningResourcesView({
                           <span>B站搜索</span>
                         </a>
                       </div>
-                      <p className="text-sm text-slate-500 mt-0.5">
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                         平台：B站
                       </p>
-                      <p className="text-sm text-slate-600 mt-2">
+                      <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">
                         {video.description}
                       </p>
                     </div>
@@ -362,7 +362,7 @@ export function LearningResourcesView({
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-slate-800">
+                        <h3 className="font-semibold text-slate-800 dark:text-slate-100">
                           {tool.name || extractNameFromUrl(tool.url) || "工具"}
                         </h3>
                         <a
@@ -375,7 +375,7 @@ export function LearningResourcesView({
                           <span>官网</span>
                         </a>
                       </div>
-                      <p className="text-sm text-slate-600 mt-1">
+                      <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
                         {tool.description}
                       </p>
                     </div>

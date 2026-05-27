@@ -87,7 +87,7 @@ function renderInlineMarkdown(text: string): React.ReactNode[] {
 
     if (part.startsWith("`") && part.endsWith("`")) {
       return (
-        <code key={index} className="rounded bg-black/10 px-1 py-0.5 text-xs font-mono">
+        <code key={index} className="rounded bg-black/10 dark:bg-white/10 px-1 py-0.5 text-xs font-mono">
           {part.slice(1, -1)}
         </code>
       );
@@ -194,8 +194,8 @@ export function AiChat({ context }: AiChatProps) {
         <ScrollArea className="flex-1 min-h-0">
           <div className="space-y-3 pr-3">
             {messages.length === 0 && (
-              <div className="text-center text-slate-400 text-sm py-8">
-                <Bot className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+              <div className="text-center text-slate-400 dark:text-slate-500 text-sm py-8">
+                <Bot className="w-10 h-10 mx-auto mb-2 text-slate-300 dark:text-slate-500" />
                 <p>你好！我是你的职业规划 AI 顾问</p>
                 <p className="text-xs mt-1">
                   可以问我任何关于职业规划的问题
@@ -210,7 +210,7 @@ export function AiChat({ context }: AiChatProps) {
                 }`}
               >
                 {msg.role === "assistant" && (
-                  <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center shrink-0 mt-0.5">
                     <Bot className="w-4 h-4 text-amber-600" />
                   </div>
                 )}
@@ -218,7 +218,7 @@ export function AiChat({ context }: AiChatProps) {
                   className={`max-w-[80%] rounded-lg px-3 py-2 text-sm break-words overflow-hidden ${
                     msg.role === "user"
                       ? "bg-amber-600 text-white"
-                      : "bg-slate-100 text-slate-700"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200"
                   }`}
                 >
                   {msg.role === "assistant" ? (
@@ -232,7 +232,7 @@ export function AiChat({ context }: AiChatProps) {
                   )}
                 </div>
                 {msg.role === "user" && (
-                  <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center shrink-0 mt-0.5">
                     <User className="w-4 h-4 text-slate-500" />
                   </div>
                 )}
@@ -241,7 +241,7 @@ export function AiChat({ context }: AiChatProps) {
             <div ref={bottomRef} />
           </div>
         </ScrollArea>
-        <div className="flex gap-2 pt-2 border-t border-slate-100 shrink-0">
+        <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700 shrink-0">
           <Input
             placeholder="输入你的问题..."
             value={input}

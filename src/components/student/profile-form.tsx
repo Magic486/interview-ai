@@ -66,14 +66,14 @@ export function ProfileForm({ onSubmit, initialProfile }: ProfileFormProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 text-amber-700 text-sm font-medium mb-4">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-sm font-medium mb-4">
           <Sparkles className="w-4 h-4" />
           AI 驱动的职业规划
         </div>
-        <h1 className="text-3xl font-bold text-slate-800 mb-2">
+        <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-2">
           规划你的计算机职业之路
         </h1>
-        <p className="text-slate-500">
+        <p className="text-slate-500 dark:text-slate-400">
           填写你的基本信息，AI 将为你量身定制职业发展规划
         </p>
       </div>
@@ -146,7 +146,7 @@ export function ProfileForm({ onSubmit, initialProfile }: ProfileFormProps) {
                 className={`cursor-pointer text-sm px-3 py-1.5 transition-all duration-150 ${
                   interests.includes(interest)
                     ? "bg-amber-600 hover:bg-amber-700 text-white border-amber-600"
-                    : "hover:border-amber-400 hover:text-amber-700"
+                    : "hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400"
                 }`}
                 onClick={() => toggleInterest(interest)}
               >

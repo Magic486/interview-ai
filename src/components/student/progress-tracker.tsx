@@ -686,8 +686,8 @@ export function ProgressTracker({
   return (
     <div className="max-w-5xl mx-auto">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">学习进度</h2>
-        <p className="text-slate-500 text-sm">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">学习进度</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-sm">
           「{career}」方向的成长记录
         </p>
       </div>
@@ -697,7 +697,7 @@ export function ProgressTracker({
         {/* Main content */}
         <div className="flex-1 min-w-0 space-y-6">
           {/* Overall Progress Card */}
-          <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-200">
+          <Card className="bg-gradient-to-br from-amber-50 dark:from-amber-950 to-white dark:to-slate-900 border-amber-200 dark:border-amber-800">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -708,7 +708,7 @@ export function ProgressTracker({
                     已完成 {completedCount} / {totalMilestones} 个里程碑
                   </p>
                 </div>
-                <div className="text-4xl font-bold text-amber-600">
+                <div className="text-4xl font-bold text-amber-600 dark:text-amber-400">
                   {overallProgress}%
                 </div>
               </div>
@@ -741,7 +741,7 @@ export function ProgressTracker({
         return (
           <Card
             key={phase.phase}
-            className={isComplete ? "border-emerald-200 bg-emerald-50/30" : ""}
+            className={isComplete ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-950/30" : ""}
           >
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -801,7 +801,7 @@ export function ProgressTracker({
                       {isMilestoneComplete ? (
                         <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                       ) : (
-                        <Circle className="w-4 h-4 text-slate-300 group-hover:text-amber-400 shrink-0" />
+                        <Circle className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-amber-400 shrink-0" />
                       )}
                       <span
                         className={`text-sm ${
@@ -819,7 +819,7 @@ export function ProgressTracker({
 
               {/* Goals reminder */}
               {phase.goals.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-slate-100">
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
                   <h4 className="text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1">
                     <Flag className="w-3 h-3" />
                     阶段目标
@@ -858,15 +858,15 @@ export function ProgressTracker({
 
       {/* Export Sidebar */}
       <div className="w-64 shrink-0 sticky top-6">
-        <Card className="bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 border-amber-200 overflow-hidden relative shadow-md">
+        <Card className="bg-gradient-to-br from-amber-50 dark:from-amber-950 via-orange-50 dark:via-orange-950 to-rose-50 dark:to-rose-950 border-amber-200 dark:border-amber-800 overflow-hidden relative shadow-md">
           <div className="absolute inset-0 bg-gradient-to-br from-amber-100/30 via-orange-100/20 to-rose-100/30 pointer-events-none" />
           <CardContent className="pt-5 pb-5 relative">
             <div className="flex flex-col items-center gap-4">
-              <div className="flex items-center gap-2 text-amber-700">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
                 <Download className="w-5 h-5" />
                 <span className="font-semibold text-base">导出学习规划</span>
               </div>
-              <p className="text-xs text-slate-500 text-center leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 text-center leading-relaxed">
                 将学习路线与资源导出为文件，方便离线查看与分享
               </p>
               <div className="flex flex-col gap-3 w-full mt-1">

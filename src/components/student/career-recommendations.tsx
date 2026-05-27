@@ -132,10 +132,10 @@ export function CareerRecommendationsView({
   }, [profile, onRecommendationsLoaded, onSetLoading]);
 
   const difficultyColor: Record<string, string> = {
-    容易: "bg-emerald-100 text-emerald-700",
-    中等: "bg-amber-100 text-amber-700",
-    较难: "bg-orange-100 text-orange-700",
-    困难: "bg-red-100 text-red-700",
+    容易: "bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300",
+    中等: "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300",
+    较难: "bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300",
+    困难: "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300",
   };
 
   // If we already have recommendations, show them
@@ -143,10 +143,10 @@ export function CareerRecommendationsView({
     return (
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
             为你推荐的职业方向
           </h2>
-          <p className="text-slate-500 text-sm">{recommendations.analysis}</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">{recommendations.analysis}</p>
         </div>
 
         {recommendations.careers.map((career, index) => (
@@ -158,11 +158,11 @@ export function CareerRecommendationsView({
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center text-amber-700 dark:text-amber-300 font-bold">
                     {index + 1}
                   </div>
                   <div>
-                    <CardTitle className="text-lg group-hover:text-amber-700 transition-colors">
+                    <CardTitle className="text-lg group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
                       {career.name}
                     </CardTitle>
                     <div className="flex items-center gap-2 mt-1">
@@ -181,39 +181,39 @@ export function CareerRecommendationsView({
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-amber-600">
+                  <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                     {career.matchScore}%
                   </div>
-                  <div className="text-xs text-slate-400">匹配度</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500">匹配度</div>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <Progress value={career.matchScore} className="h-2" />
-              <p className="text-slate-600 text-sm">{career.description}</p>
+              <p className="text-slate-600 dark:text-slate-300 text-sm">{career.description}</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-start gap-2 text-sm">
                   <DollarSign className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                  <span className="text-slate-600">{career.salary}</span>
+                  <span className="text-slate-600 dark:text-slate-300">{career.salary}</span>
                 </div>
                 <div className="flex items-start gap-2 text-sm">
                   <TrendingUp className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-                  <span className="text-slate-600">{career.prospects}</span>
+                  <span className="text-slate-600 dark:text-slate-300">{career.prospects}</span>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                <Target className="w-4 h-4 text-slate-400 mt-0.5" />
+                <Target className="w-4 h-4 text-slate-400 dark:text-slate-500 mt-0.5" />
                 {career.coreSkills.map((skill) => (
                   <Badge
                     key={skill}
                     variant="secondary"
-                    className="bg-slate-100 text-slate-600 text-xs"
+                    className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs"
                   >
                     {skill}
                   </Badge>
                 ))}
               </div>
-              <div className="flex items-center justify-end pt-1 text-amber-600 text-sm font-medium group-hover:translate-x-1 transition-transform">
+              <div className="flex items-center justify-end pt-1 text-amber-600 dark:text-amber-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
                 查看学习路线 <ChevronRight className="w-4 h-4" />
               </div>
             </CardContent>
@@ -249,11 +249,11 @@ export function CareerRecommendationsView({
           </CardHeader>
           <CardContent>
             {rawText ? (
-              <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 font-mono whitespace-pre-wrap max-h-96 overflow-y-auto">
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 text-sm text-slate-600 dark:text-slate-300 font-mono whitespace-pre-wrap max-h-96 overflow-y-auto">
                 {rawText}
               </div>
             ) : (
-              <div className="flex items-center gap-3 text-slate-400">
+              <div className="flex items-center gap-3 text-slate-400 dark:text-slate-500">
                 <Spinner className="w-5 h-5" />
                 <span>正在生成中，请稍候...</span>
               </div>
@@ -277,7 +277,7 @@ export function CareerRecommendationsView({
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-lg text-sm">
               {error}
             </div>
           )}

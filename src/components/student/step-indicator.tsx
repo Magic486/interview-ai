@@ -47,10 +47,10 @@ export function StepIndicator({
                 disabled={isDisabled}
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                  isActive && "bg-amber-100 text-amber-800",
-                  isCompleted && "text-emerald-600 hover:bg-emerald-50",
-                  !isActive && !isCompleted && !isDisabled && "text-slate-500 hover:bg-slate-100",
-                  isDisabled && "text-slate-300 cursor-not-allowed"
+                  isActive && "bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200",
+                  isCompleted && "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950",
+                  !isActive && !isCompleted && !isDisabled && "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800",
+                  isDisabled && "text-slate-300 dark:text-slate-600 cursor-not-allowed"
                 )}
               >
                 <div
@@ -58,8 +58,8 @@ export function StepIndicator({
                     "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all",
                     isActive && "bg-amber-600 text-white",
                     isCompleted && "bg-emerald-500 text-white",
-                    !isActive && !isCompleted && "bg-slate-200 text-slate-500",
-                    isDisabled && "bg-slate-100 text-slate-300"
+                    !isActive && !isCompleted && "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400",
+                    isDisabled && "bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600"
                   )}
                 >
                   {isCompleted ? (
@@ -76,7 +76,7 @@ export function StepIndicator({
                 <div
                   className={cn(
                     "flex-1 h-0.5 mx-2 transition-colors duration-300",
-                    index < currentIndex ? "bg-emerald-400" : "bg-slate-200"
+                    index < currentIndex ? "bg-emerald-400" : "bg-slate-200 dark:bg-slate-700"
                   )}
                 />
               )}
