@@ -1,15 +1,17 @@
 import { z } from "zod";
 import { tool } from "ai";
 import { INTERVIEW_QUESTIONS, type InterviewQuestion } from "@/config/interview-questions";
+import { getRemoteQuestions } from "@/lib/ai/question-fetcher";
 
-function searchQuestions(params: {
+async function searchQuestions(params: {
   stage: string;
   company?: string;
   difficulty?: string;
   tags?: string[];
   limit?: number;
 }) {
-  let results: InterviewQuestion[] = [...INTERVIEW_QUESTIONS];
+  const remote = await getRemoteQuestions();
+  let results: InterviewQuestion[] = [...INTERVIEW_QUESTIONS, ...remote];
 
   if (params.stage && params.stage !== "any") {
     results = results.filter((q) => q.stage === params.stage);
@@ -80,11 +82,15 @@ export const interviewTools = {
     description:
       "从海量真实面试题库中检索题目。在开始新面试或需要新题目时调用。返回题目标题、完整题目内容、难度、标签和来源公司。优先使用和当前公司匹配的题目。",
     inputSchema: searchInterviewKnowledgeSchema,
-    execute: async (params) => ({
-      questions: searchQuestions(params),
-      total: searchQuestions({ ...params, limit: 99 }).length,
-      hint: "请从中选择 1-2 道最适合当前候选人的题目。出题时保持原题目核心，可结合候选人背景微调难度和措辞。",
-    }),
+    execute: async (params) => {
+      const questions = await searchQuestions(params);
+      const total = (await searchQuestions({ ...params, limit: 99 })).length;
+      return {
+        questions,
+        total,
+        hint: "请从中选择 1-2 道最适合当前候选人的题目。出题时保持原题目核心，可结合候选人背景微调难度和措辞。",
+      };
+    },
   }),
   advanceStage: tool({
     description:
