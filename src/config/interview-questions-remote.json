@@ -1,0 +1,133 @@
+﻿[
+    {
+        "id":  "b1",
+        "tags":  [
+                     "数据结构",
+                     "哈希表",
+                     "双向链表"
+                 ],
+        "stage":  "algorithm",
+        "company":  "字节跳动",
+        "difficulty":  "medium",
+        "title":  "LRU 缓存机制",
+        "content":  "设计并实现一个 LRU（最近最少使用）缓存，支持 get(key) 和 put(key, value) 操作，要求 O(1) 时间复杂度。如果缓存达到容量上限，淘汰最久未使用的键。"
+    },
+    {
+        "id":  "b2",
+        "tags":  [
+                     "滑动窗口",
+                     "哈希表",
+                     "字符串"
+                 ],
+        "stage":  "algorithm",
+        "company":  "字节跳动",
+        "difficulty":  "medium",
+        "title":  "无重复字符的最长子串",
+        "content":  "给定一个字符串 s，找出其中不含有重复字符的最长子串的长度。要求分析滑动窗口的时间复杂度，并讨论如何处理 Unicode 字符。"
+    },
+    {
+        "id":  "b3",
+        "tags":  [
+                     "双指针",
+                     "单调栈",
+                     "动态规划"
+                 ],
+        "stage":  "algorithm",
+        "company":  "字节跳动",
+        "difficulty":  "hard",
+        "title":  "接雨水",
+        "content":  "给定 n 个非负整数表示每个宽度为 1 的柱子的高度图，计算按此排列的柱子下雨之后能接多少雨水。要求同时给出双指针和单调栈两种解法。"
+    },
+    {
+        "id":  "b4",
+        "tags":  [
+                     "链表",
+                     "分治",
+                     "堆"
+                 ],
+        "stage":  "algorithm",
+        "company":  "字节跳动",
+        "difficulty":  "hard",
+        "title":  "合并 K 个升序链表",
+        "content":  "给你一个链表数组，每个链表都已经按升序排列。将所有链表合并到一个升序链表中。要求分析分治法 vs 优先队列的优劣。"
+    },
+    {
+        "id":  "b5",
+        "tags":  [
+                     "系统设计",
+                     "高并发",
+                     "Redis",
+                     "消息队列"
+                 ],
+        "stage":  "project",
+        "company":  "字节跳动",
+        "difficulty":  "medium",
+        "title":  "秒杀系统设计",
+        "content":  "设计一个秒杀系统，QPS 峰值 100 万。请讨论：库存扣减方案（Redis + Lua）、流量削峰（消息队列）、限流策略、数据一致性保证。"
+    },
+    {
+        "id":  "a1",
+        "tags":  [
+                     "DFS",
+                     "BFS",
+                     "图"
+                 ],
+        "stage":  "algorithm",
+        "company":  "阿里巴巴",
+        "difficulty":  "medium",
+        "title":  "岛屿数量",
+        "content":  "给定一个由 \u00271\u0027（陆地）和 \u00270\u0027（水）组成的二维网格，计算网格中岛屿的数量。请同时给出 DFS 和 BFS 两种解法。"
+    },
+    {
+        "id":  "a2",
+        "tags":  [
+                     "数据结构",
+                     "哈希表",
+                     "红黑树"
+                 ],
+        "stage":  "algorithm",
+        "company":  "阿里巴巴",
+        "difficulty":  "hard",
+        "title":  "LFU 缓存",
+        "content":  "设计一个 LFU（最不经常使用）缓存的数据结构。实现 get 和 put，当缓存达到容量限制时，移除使用频率最低的键。"
+    },
+    {
+        "id":  "a3",
+        "tags":  [
+                     "数据库",
+                     "分库分表",
+                     "分布式"
+                 ],
+        "stage":  "cross",
+        "company":  "阿里巴巴",
+        "difficulty":  "medium",
+        "title":  "数据库分库分表",
+        "content":  "当单表数据量超过 5000 万行时设计分库分表方案。讨论：分片键选择、跨分片查询、全局唯一 ID、数据迁移和扩容。"
+    },
+    {
+        "id":  "t1",
+        "tags":  [
+                     "二叉树",
+                     "递归",
+                     "DFS"
+                 ],
+        "stage":  "algorithm",
+        "company":  "腾讯",
+        "difficulty":  "medium",
+        "title":  "二叉树的最近公共祖先",
+        "content":  "给定一个二叉树，找到该树中两个指定节点的最近公共祖先。要求分别实现递归和迭代两种方法。"
+    },
+    {
+        "id":  "t2",
+        "tags":  [
+                     "系统设计",
+                     "Feed流",
+                     "分布式"
+                 ],
+        "stage":  "project",
+        "company":  "腾讯",
+        "difficulty":  "hard",
+        "title":  "微信朋友圈架构",
+        "content":  "设计微信朋友圈后端架构，支持发布、Feed 流推送、Timeline 聚合、点赞和评论的实时更新。讨论 CAP 权衡。"
+    }
+]
