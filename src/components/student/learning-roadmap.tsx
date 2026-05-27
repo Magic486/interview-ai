@@ -257,12 +257,7 @@ export function LearningRoadmapView({
           const isPhaseComplete = completedCount === totalMilestones && totalMilestones > 0;
 
           return (
-            <div key={phase.phase} className="relative">
-              {/* Timeline line */}
-              {index < roadmap.phases.length - 1 && (
-                <div className="absolute left-[19px] top-10 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700" />
-              )}
-
+            <div key={phase.phase}>
               <Card
                 className={`mb-4 ${colors.border} transition-all duration-200`}
               >
