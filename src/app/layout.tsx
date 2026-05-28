@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { BackgroundProvider } from "@/components/background/BackgroundProvider";
+import { BackgroundLayer } from "@/components/background/BackgroundLayer";
 import { Navbar } from "@/components/layout/Navbar";
 import "./globals.css";
 
@@ -32,8 +34,11 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
+          <BackgroundProvider>
+            <BackgroundLayer />
+            <Navbar />
+            <main className="flex-1 relative z-10">{children}</main>
+          </BackgroundProvider>
         </ThemeProvider>
       </body>
     </html>

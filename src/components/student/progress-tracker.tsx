@@ -701,10 +701,10 @@ export function ProgressTracker({
             <CardContent className="pt-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
                     总体进度
                   </h3>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     已完成 {completedCount} / {totalMilestones} 个里程碑
                   </p>
                 </div>
@@ -713,7 +713,7 @@ export function ProgressTracker({
                 </div>
               </div>
               <Progress value={overallProgress} className="h-3" />
-              <div className="flex items-center gap-2 mt-3 text-sm text-slate-500">
+              <div className="flex items-center gap-2 mt-3 text-sm text-slate-500 dark:text-slate-300">
                 <TrendingUp className="w-4 h-4 text-emerald-500" />
                 {overallProgress === 0 && "开始你的学习之旅吧！"}
                 {overallProgress > 0 &&
@@ -759,7 +759,7 @@ export function ProgressTracker({
                   </div>
                   <div>
                     <CardTitle className="text-base">{phase.name}</CardTitle>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                       {phase.duration}
                     </p>
                   </div>
@@ -770,7 +770,7 @@ export function ProgressTracker({
                     className={
                       isComplete
                         ? "bg-emerald-500 text-white"
-                        : "bg-slate-100 text-slate-600"
+                        : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
                     }
                   >
                     {phaseCompleted}/{phaseTotal}
@@ -806,8 +806,8 @@ export function ProgressTracker({
                       <span
                         className={`text-sm ${
                           isMilestoneComplete
-                            ? "line-through text-slate-400"
-                            : "text-slate-600 group-hover:text-slate-800"
+                            ? "line-through text-slate-400 dark:text-slate-500"
+                            : "text-slate-600 dark:text-slate-300 group-hover:text-slate-800 dark:group-hover:text-slate-100"
                         }`}
                       >
                         {milestone}
@@ -820,7 +820,7 @@ export function ProgressTracker({
               {/* Goals reminder */}
               {phase.goals.length > 0 && (
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
-                  <h4 className="text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1">
+                  <h4 className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-1.5 flex items-center gap-1">
                     <Flag className="w-3 h-3" />
                     阶段目标
                   </h4>
@@ -829,7 +829,7 @@ export function ProgressTracker({
                       <Badge
                         key={i}
                         variant="outline"
-                        className="text-xs text-slate-500"
+                        className="text-xs text-slate-500 dark:text-slate-400"
                       >
                         {goal}
                       </Badge>
@@ -848,7 +848,7 @@ export function ProgressTracker({
           variant="ghost"
           size="sm"
           onClick={onReset}
-          className="text-slate-400 gap-1.5"
+          className="text-slate-400 dark:text-slate-500 dark:hover:text-slate-200 gap-1.5"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           重置所有进度

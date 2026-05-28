@@ -184,7 +184,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="border-t p-4 bg-background">
+      <div className="border-t border-border/50 p-4 bg-muted/50 backdrop-blur-xl">
         <div className="flex gap-2">
           <Textarea
             id="chat-input"

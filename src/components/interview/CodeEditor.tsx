@@ -65,7 +65,7 @@ export function CodeEditor({ visible, onLanguageChange, onSubmit }: CodeEditorPr
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-3 border-b">
+      <div className="flex items-center justify-between p-3 border-b border-border/50 bg-background/60">
         <div className="flex items-center gap-2">
           <Code2 className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">代码编辑器</span>
@@ -103,7 +103,7 @@ export function CodeEditor({ visible, onLanguageChange, onSubmit }: CodeEditorPr
         />
       </div>
 
-      <div className="p-3 border-t flex gap-2">
+      <div className="p-3 border-t border-border/50 flex gap-2 bg-background/60">
         <Button className="flex-1 gap-2" size="sm" onClick={handleRun}>
           <Play className="h-4 w-4" />
           提交代码

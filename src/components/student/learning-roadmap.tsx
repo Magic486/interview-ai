@@ -319,7 +319,7 @@ export function LearningRoadmapView({
                         {phase.goals.map((goal, i) => (
                           <li
                             key={i}
-                            className="text-sm text-slate-600 flex items-start gap-2"
+                            className="text-sm text-slate-600 dark:text-slate-300 flex items-start gap-2"
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
                             {goal}
@@ -413,7 +413,7 @@ export function LearningRoadmapView({
                         {phase.projects.map((project, i) => (
                           <li
                             key={i}
-                            className="text-sm text-slate-600 flex items-start gap-2"
+                            className="text-sm text-slate-600 dark:text-slate-300 flex items-start gap-2"
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0" />
                             {project}

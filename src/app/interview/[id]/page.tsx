@@ -269,7 +269,7 @@ export default function InterviewPage() {
       </div>
 
       {codeEditorVisible && (
-        <aside className="w-96 shrink-0 border-l">
+        <aside className="w-96 shrink-0 border-l border-border/50 bg-background/80 backdrop-blur-xl">
           <CodeEditor
             visible={true}
             onLanguageChange={() => {}}

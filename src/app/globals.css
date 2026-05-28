@@ -124,6 +124,18 @@
   body {
     @apply bg-background text-foreground;
   }
+  body[data-custom-bg] {
+    background-color: oklch(0.985 0.005 260) !important;
+  }
+
+  /* Custom bg in dark mode: surfaces stay mostly opaque for text readability,
+     with subtle translucency to let the background image peek through */
+  .dark body[data-custom-bg] {
+    --card: oklch(0.18 0.015 260 / 0.85);
+    --popover: oklch(0.18 0.015 260 / 0.85);
+    --secondary: oklch(0.22 0.03 270 / 0.8);
+    --muted: oklch(0.22 0.03 260 / 0.8);
+  }
   html {
     @apply font-sans;
   }
@@ -131,7 +143,7 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10;
+    @apply bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border border-white/20 dark:border-white/10;
   }
   .gradient-text {
     @apply bg-gradient-to-r from-primary via-violet-500 to-orange-500 bg-clip-text text-transparent;
