@@ -684,7 +684,7 @@ export function ProgressTracker({
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="mx-auto w-full max-w-5xl">
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-slate-800 mb-2">学习进度</h2>
         <p className="text-slate-500 text-sm">
@@ -693,14 +693,14 @@ export function ProgressTracker({
       </div>
 
       {/* Two-column layout: main content + export sidebar */}
-      <div className="flex gap-6 items-start">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         {/* Main content */}
-        <div className="flex-1 min-w-0 space-y-6">
+        <div className="w-full min-w-0 flex-1 space-y-6">
           {/* Overall Progress Card */}
           <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-200">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
+              <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <h3 className="text-lg font-semibold text-slate-800">
                     总体进度
                   </h3>
@@ -708,7 +708,7 @@ export function ProgressTracker({
                     已完成 {completedCount} / {totalMilestones} 个里程碑
                   </p>
                 </div>
-                <div className="text-4xl font-bold text-amber-600">
+                <div className="text-3xl font-bold text-amber-600 sm:text-4xl">
                   {overallProgress}%
                 </div>
               </div>
@@ -744,8 +744,8 @@ export function ProgressTracker({
             className={isComplete ? "border-emerald-200 bg-emerald-50/30" : ""}
           >
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
                       isComplete ? "bg-emerald-500" : "bg-amber-500"
@@ -757,20 +757,20 @@ export function ProgressTracker({
                       phase.phase
                     )}
                   </div>
-                  <div>
-                    <CardTitle className="text-base">{phase.name}</CardTitle>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                  <div className="min-w-0">
+                    <CardTitle className="text-base break-words">{phase.name}</CardTitle>
+                    <p className="mt-0.5 break-words text-xs text-slate-400">
                       {phase.duration}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                   <Badge
                     variant={isComplete ? "default" : "secondary"}
                     className={
                       isComplete
                         ? "bg-emerald-500 text-white"
-                        : "bg-slate-100 text-slate-600"
+                      : "bg-slate-100 text-slate-600"
                     }
                   >
                     {phaseCompleted}/{phaseTotal}
@@ -779,7 +779,7 @@ export function ProgressTracker({
                     variant="ghost"
                     size="sm"
                     onClick={() => onTogglePhase(phase.phase)}
-                    className="text-xs"
+                    className="shrink-0 text-xs"
                   >
                     {isComplete ? "取消完成" : "标记完成"}
                   </Button>
@@ -795,7 +795,7 @@ export function ProgressTracker({
                   return (
                     <div
                       key={i}
-                      className="flex items-center gap-2 cursor-pointer group"
+                      className="flex cursor-pointer items-start gap-2 group"
                       onClick={() => onToggleMilestone(phase.phase, i)}
                     >
                       {isMilestoneComplete ? (
@@ -804,7 +804,7 @@ export function ProgressTracker({
                         <Circle className="w-4 h-4 text-slate-300 group-hover:text-amber-400 shrink-0" />
                       )}
                       <span
-                        className={`text-sm ${
+                        className={`min-w-0 break-words text-sm ${
                           isMilestoneComplete
                             ? "line-through text-slate-400"
                             : "text-slate-600 group-hover:text-slate-800"
@@ -829,7 +829,7 @@ export function ProgressTracker({
                       <Badge
                         key={i}
                         variant="outline"
-                        className="text-xs text-slate-500"
+                        className="max-w-full whitespace-normal break-words text-left text-xs text-slate-500"
                       >
                         {goal}
                       </Badge>
@@ -857,7 +857,7 @@ export function ProgressTracker({
       </div>
 
       {/* Export Sidebar */}
-      <div className="w-64 shrink-0 sticky top-6">
+      <div className="w-full lg:sticky lg:top-6 lg:w-64 lg:shrink-0">
         <Card className="bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 border-amber-200 overflow-hidden relative shadow-md">
           <div className="absolute inset-0 bg-gradient-to-br from-amber-100/30 via-orange-100/20 to-rose-100/30 pointer-events-none" />
           <CardContent className="pt-5 pb-5 relative">
@@ -872,16 +872,16 @@ export function ProgressTracker({
               <div className="flex flex-col gap-3 w-full mt-1">
                 <Button
                   onClick={handleExportMD}
-                  className="bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 text-white shadow-lg shadow-slate-300/50 gap-2 h-11 text-sm font-medium transition-all duration-200 hover:shadow-xl hover:scale-[1.03] active:scale-[0.97] w-full"
+                  className="bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 text-white shadow-lg shadow-slate-300/50 gap-2 h-11 min-w-0 text-sm font-medium transition-all duration-200 hover:shadow-xl hover:scale-[1.03] active:scale-[0.97] w-full"
                 >
-                  <FileText className="w-4 h-4" />
+                  <FileText className="w-4 h-4 shrink-0" />
                   导出 Markdown
                 </Button>
                 <Button
                   onClick={handleExportDOCX}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-300/50 gap-2 h-11 text-sm font-medium transition-all duration-200 hover:shadow-xl hover:scale-[1.03] active:scale-[0.97] w-full"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-300/50 gap-2 h-11 min-w-0 text-sm font-medium transition-all duration-200 hover:shadow-xl hover:scale-[1.03] active:scale-[0.97] w-full"
                 >
-                  <FileDown className="w-4 h-4" />
+                  <FileDown className="w-4 h-4 shrink-0" />
                   导出 Word
                 </Button>
               </div>
