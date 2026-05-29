@@ -28,7 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { COMPANY_FLOWS } from "@/config/interview-stages";
 import { loadInterviewContext } from "@/lib/interview-context";
-import { AlertTriangle, Clock, Code2, ListChecks, Loader2, MessageSquare, Send } from "lucide-react";
+import { AlertTriangle, Clock, Code2, ListChecks, Loader2, MessageSquare, Mic, MicOff, Send } from "lucide-react";
 import type { CompanyFlow, InterviewConfig, InterviewMode } from "@/types";
 
 type MobilePanel = "chat" | "code" | "progress";
@@ -694,6 +694,11 @@ const MobileChatPanel = forwardRef<ChatPanelHandle, {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const [listening, setListening] = useState(false);
+  const [interimText, setInterimText] = useState("");
+  const [voiceWarning, setVoiceWarning] = useState("");
+  const speechRef = useRef<InstanceType<typeof import("@/lib/speech").SpeechService> | null>(null);
+
   const isLoading = status === "streaming" || status === "submitted";
   const visibleMessages = messages.filter((msg) => getMobileMessageText(msg) !== INIT_TRIGGER);
 
@@ -703,6 +708,49 @@ const MobileChatPanel = forwardRef<ChatPanelHandle, {
     if (!text || isLoading) return;
     sendMessage({ text });
     setInput("");
+  };
+
+  const handleVoiceToggle = async () => {
+    if (listening) {
+      speechRef.current?.stopRecognition();
+      setListening(false);
+      setInterimText("");
+      return;
+    }
+
+    try {
+      const { SpeechService } = await import("@/lib/speech");
+      if (!SpeechService.isRecognitionSupported()) {
+        setVoiceWarning("语音识别需要 HTTPS 环境，当前浏览器不支持");
+        setTimeout(() => setVoiceWarning(""), 4000);
+        return;
+      }
+
+      speechRef.current = new SpeechService();
+      setListening(true);
+      setVoiceWarning("");
+      setInterimText("");
+
+      const text = await speechRef.current.startRecognition(
+        "zh-CN",
+        (interim) => setInterimText(interim)
+      );
+
+      if (text) {
+        sendMessage({ text });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "未知错误";
+      const isAbortError = msg.includes("aborted") || msg.includes("not-allowed");
+      const hint = isAbortError
+        ? "语音识别需要 HTTPS 环境，本地 HTTP 测试不支持，部署到服务器后可正常使用"
+        : `语音识别失败：${msg}`;
+      setVoiceWarning(hint);
+      setTimeout(() => setVoiceWarning(""), 5000);
+    } finally {
+      setListening(false);
+      setInterimText("");
+    }
   };
 
   return (
@@ -744,18 +792,39 @@ const MobileChatPanel = forwardRef<ChatPanelHandle, {
         <div ref={messagesEndRef} />
       </div>
       <div className="border-t bg-background p-3">
+        {listening && interimText && (
+          <div className="px-1 py-1 text-center text-xs italic text-primary">
+            正在识别：{interimText}
+          </div>
+        )}
         <form className="flex gap-2" onSubmit={submit}>
           <textarea
             id="mobile-chat-input"
             value={input}
             onChange={(event) => setInput(event.target.value)}
-            placeholder={mode === "normal" ? "输入你的回答..." : "向 AI 候选人提问..."}
+            placeholder={
+              listening
+                ? interimText || "正在聆听..."
+                : mode === "normal" ? "输入你的回答..." : "向 AI 候选人提问..."
+            }
             rows={1}
             disabled={isLoading}
             enterKeyHint="send"
             autoComplete="off"
             className="max-h-28 min-h-11 min-w-0 flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           />
+          <button
+            type="button"
+            disabled={isLoading && !listening}
+            onClick={handleVoiceToggle}
+            className={`inline-flex size-11 shrink-0 items-center justify-center rounded-lg border touch-manipulation disabled:pointer-events-none disabled:opacity-50 ${
+              listening
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background"
+            }`}
+          >
+            {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </button>
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
@@ -764,6 +833,11 @@ const MobileChatPanel = forwardRef<ChatPanelHandle, {
             <Send className="h-4 w-4" />
           </button>
         </form>
+        {voiceWarning && (
+          <div className="px-1 pt-1.5 text-center text-xs text-destructive">
+            {voiceWarning}
+          </div>
+        )}
       </div>
     </div>
   );
