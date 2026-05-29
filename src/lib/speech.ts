@@ -14,25 +14,33 @@ export class SpeechService {
   /**
    * 开始语音识别，返回识别结果的 Promise
    * @param lang 语言代码 'zh-CN' | 'en-US'
+   * @param onInterim 可选回调，实时返回中间识别结果
    */
-  startRecognition(lang: "zh-CN" | "en-US" = "zh-CN"): Promise<string> {
+  startRecognition(
+    lang: "zh-CN" | "en-US" = "zh-CN",
+    onInterim?: (text: string) => void
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
-      const SpeechRecognition =
+      const SpeechRecognitionAPI =
         window.SpeechRecognition || window.webkitSpeechRecognition;
 
-      if (!SpeechRecognition) {
+      if (!SpeechRecognitionAPI) {
         reject(new Error("浏览器不支持语音识别"));
         return;
       }
 
-      this.recognition = new SpeechRecognition();
+      this.recognition = new SpeechRecognitionAPI();
       this.recognition.lang = lang;
-      this.recognition.interimResults = false;
+      this.recognition.interimResults = !!onInterim;
       this.recognition.maxAlternatives = 1;
 
       this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = event.results[0][0].transcript;
-        resolve(transcript);
+        if (event.results[0].isFinal) {
+          const transcript = event.results[0][0].transcript;
+          resolve(transcript);
+        } else if (onInterim) {
+          onInterim(event.results[0][0].transcript);
+        }
       };
 
       this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {

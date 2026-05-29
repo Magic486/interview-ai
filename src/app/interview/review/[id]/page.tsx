@@ -124,10 +124,10 @@ export default function ReviewPage() {
   const verdict = getVerdictMeta(report);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
+    <main className="mx-auto w-full max-w-6xl overflow-x-hidden px-4 py-8">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="mb-3 flex items-center gap-2">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
             <Badge variant={generatedNow ? "default" : "secondary"}>
               {generatedNow ? "已生成新报告" : "已读取历史报告"}
             </Badge>
@@ -142,7 +142,7 @@ export default function ReviewPage() {
               : "基于本次面试对话，评估通过概率、关键短板和下一步提升路径"}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ReviewExportButtons report={report} />
           <Link href="/interview/new">
             <Button variant="outline" className="gap-2">
@@ -289,22 +289,31 @@ export default function ReviewPage() {
               : "按优先级补齐影响通过率的关键能力"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
+        <CardContent className="grid min-w-0 gap-3 md:grid-cols-2">
           {report.improvementPlan.map((item, index) => (
-            <div key={`${item.area}-${index}`} className="rounded-lg border p-4">
-              <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+            <div
+              key={`${item.area}-${index}`}
+              className="min-w-0 overflow-hidden rounded-lg border p-4"
+            >
+              <div className="flex min-w-0 items-start gap-2">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
                   {index + 1}
                 </span>
-                <p className="font-medium">{item.area}</p>
+                <p className="min-w-0 break-words font-medium [overflow-wrap:anywhere]">
+                  {item.area}
+                </p>
               </div>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              <p className="mt-3 break-words text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
                 {item.action}
               </p>
               {item.resources.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 flex min-w-0 flex-wrap gap-2">
                   {item.resources.map((resource) => (
-                    <Badge key={resource} variant="outline">
+                    <Badge
+                      key={resource}
+                      variant="outline"
+                      className="max-w-full whitespace-normal break-words text-left leading-relaxed [overflow-wrap:anywhere]"
+                    >
                       {resource}
                     </Badge>
                   ))}

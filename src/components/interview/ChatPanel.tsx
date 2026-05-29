@@ -278,7 +278,7 @@ function MessageBubble({
   );
 }
 
-function MarkdownMessage({ content }: { content: string }) {
+export function MarkdownMessage({ content }: { content: string }) {
   const lines = content.split(/\r?\n/);
   const blocks: React.ReactNode[] = [];
   let listItems: string[] = [];
@@ -300,7 +300,7 @@ function MarkdownMessage({ content }: { content: string }) {
   const flushCode = () => {
     if (codeLines.length === 0) return;
     blocks.push(
-      <pre key={`code-${blocks.length}`} className="my-2 overflow-x-auto rounded-lg bg-muted p-3 text-xs">
+      <pre key={`code-${blocks.length}`} className="my-2 max-w-full overflow-x-auto rounded-lg bg-muted p-3 text-xs">
         <code>{codeLines.join("\n")}</code>
       </pre>
     );
@@ -363,7 +363,7 @@ function MarkdownMessage({ content }: { content: string }) {
   flushList();
   flushCode();
 
-  return <div className="space-y-1">{blocks}</div>;
+  return <div className="max-w-full space-y-1 overflow-hidden break-words">{blocks}</div>;
 }
 
 function renderInlineMarkdown(text: string): React.ReactNode[] {
@@ -378,7 +378,7 @@ function renderInlineMarkdown(text: string): React.ReactNode[] {
       return (
         <code
           key={index}
-          className="rounded bg-background px-1 py-0.5 text-[0.92em]"
+          className="break-words rounded bg-background px-1 py-0.5 text-[0.92em]"
         >
           {part.slice(1, -1)}
         </code>
