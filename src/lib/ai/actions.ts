@@ -81,12 +81,15 @@ export async function saveMessage(data: {
   });
 }
 
-export async function getMessages(interviewId: string) {
-  return db
+export async function getMessages(interviewId: string, stage?: string) {
+  const query = db
     .select()
     .from(messages)
-    .where(eq(messages.interviewId, interviewId))
-    .orderBy(messages.createdAt);
+    .where(eq(messages.interviewId, interviewId));
+  if (stage) {
+    query.where(eq(messages.stage, stage));
+  }
+  return query.orderBy(messages.createdAt);
 }
 
 export async function updateInterviewStage(
@@ -229,9 +232,10 @@ export async function getLearningPath(pathId: string) {
 // ========== 复盘报告生成 ==========
 
 export async function generateReview(
-  interviewId: string
+  interviewId: string,
+  stage?: string,
 ): Promise<ReviewReport> {
-  const messageList = await getMessages(interviewId);
+  const messageList = await getMessages(interviewId, stage);
   const interviewRows = await db
     .select()
     .from(interviews)

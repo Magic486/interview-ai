@@ -11,7 +11,7 @@ export function Navbar() {
 
   return (
     <header className="border-b border-white/20 dark:border-white/5 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl sticky top-0 z-50 transition-colors" suppressHydrationWarning>
-      <div className="max-w-6xl mx-auto flex items-center justify-between h-14 px-4">
+      <div className="w-full flex items-center justify-between h-14 px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold text-lg group">
           <GraduationCap className="h-6 w-6 text-primary transition-transform group-hover:scale-110" />
           <span className="gradient-text">Interview.ai</span>

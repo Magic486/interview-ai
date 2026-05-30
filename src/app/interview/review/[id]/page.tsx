@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowRight,
+  ArrowLeft,
   CheckCircle2,
   CircleX,
   ClipboardList,
@@ -28,10 +30,14 @@ import type { DimensionScores, ReviewReport } from "@/types";
 export default function ReviewPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const id = params.id as string;
   const roleText = searchParams.get("role") || "目标岗位";
   const companyText = searchParams.get("company") || "目标公司";
   const isReversed = searchParams.get("mode") === "reversed";
+  const stageIndex = searchParams.get("stage") || "";
+  const nextStage = searchParams.get("nextStage") || "";
+  const stageName = searchParams.get("stage") ? `第 ${Number(stageIndex) + 1} 轮` : "";
 
   const [report, setReport] = useState<ReviewReport | null>(null);
   const [generatedNow, setGeneratedNow] = useState(false);
@@ -55,6 +61,8 @@ export default function ReviewPage() {
         // No existing review, generate one
         const genRes = await fetch(`/api/interview/review/${id}`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: stageIndex ? JSON.stringify({ stage: stageIndex }) : undefined,
         });
         if (!genRes.ok) {
           const errData = await genRes.json().catch(() => ({}));
@@ -323,6 +331,38 @@ export default function ReviewPage() {
           ))}
         </CardContent>
       </Card>
+
+      {/* 继续 / 返回按钮 */}
+      <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+        {nextStage && nextStage !== "completed" ? (
+          <>
+            <Link
+              href={`/interview/${id}?mode=${isReversed ? "reversed" : "normal"}&role=${encodeURIComponent(roleText)}&company=${encodeURIComponent(companyText)}&stage=${Number(stageIndex) + 1}`}
+            >
+              <Button size="lg" className="gap-2 bg-amber-600 hover:bg-amber-700 text-white px-8">
+                继续下一轮面试
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => router.back()}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              返回面试页
+            </Button>
+          </>
+        ) : (
+          <Link href="/">
+            <Button size="lg" className="gap-2 px-8">
+              返回首页
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        )}
+      </div>
     </main>
   );
 }

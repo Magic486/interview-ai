@@ -862,11 +862,7 @@ function MobileMessageBubble({
           isInterviewer ? "bg-muted/50" : "border-primary/20 bg-primary/5"
         }`}
       >
-        {isInterviewer ? (
-          <MarkdownMessage content={content} />
-        ) : (
-          <p className="whitespace-pre-wrap">{content}</p>
-        )}
+        <MarkdownMessage content={content} />
       </div>
     </div>
   );

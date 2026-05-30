@@ -29,9 +29,13 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    // Dynamically import to avoid circular deps
+    let stage: string | undefined;
+    try {
+      const body = await req.json();
+      stage = body.stage;
+    } catch {}
     const { generateReview } = await import("@/lib/ai/actions");
-    const report = await generateReview(id);
+    const report = await generateReview(id, stage);
     return NextResponse.json({ report });
   } catch (error) {
     console.error("生成复盘报告失败:", error);

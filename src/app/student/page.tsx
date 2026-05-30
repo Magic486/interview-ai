@@ -43,11 +43,18 @@ export default function StudentPathPage() {
   }
 
   const disabledSteps: AppStep[] = [];
+  const isProfileComplete = !!(state.profile.major && state.profile.interests.length > 0);
+  if (!isProfileComplete) {
+    disabledSteps.push("careers");
+  }
   if (!state.careerRecommendations) {
     disabledSteps.push("roadmap", "resources", "progress");
   }
+  if (!state.selectedCareer) {
+    disabledSteps.push("roadmap");
+  }
   if (!state.roadmap) {
-    disabledSteps.push("progress");
+    disabledSteps.push("resources", "progress");
   }
   const uniqueDisabled = [...new Set(disabledSteps)];
 
@@ -84,44 +91,6 @@ export default function StudentPathPage() {
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)]">
-      {/* Header */}
-      <header className="sticky top-14 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b dark:border-white/5">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-lg font-bold">CodePath</h1>
-                <p className="text-xs text-muted-foreground">AI 驱动的计算机职业规划</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowChat(!showChat)}
-                className="gap-1.5"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span className="hidden sm:inline">AI 顾问</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetAll}
-                className="gap-1.5"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">重新开始</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
 
       {/* Step Indicator */}
       <div className="max-w-4xl mx-auto px-4 py-4">
@@ -235,6 +204,27 @@ export default function StudentPathPage() {
           )}
         </div>
       </main>
+
+      {/* Floating Action Buttons */}
+      <div className={`fixed z-50 flex flex-col gap-3 items-end transition-all duration-300 ${showChat ? "bottom-[calc(70vh+1rem)] lg:bottom-6 right-6 lg:!right-[22rem]" : "bottom-6 right-6"}`}>
+        <Button
+          variant="outline"
+          size="default"
+          onClick={resetAll}
+          className="gap-2 shadow-lg rounded-full px-5 bg-background/95 backdrop-blur-sm"
+        >
+          <RotateCcw className="w-5 h-5" />
+          <span className="hidden sm:inline">重新开始</span>
+        </Button>
+        <Button
+          size="default"
+          onClick={() => setShowChat(!showChat)}
+          className="gap-2 shadow-lg shadow-amber-500/25 rounded-full px-5 bg-amber-600 hover:bg-amber-700 text-white"
+        >
+          <MessageSquare className="w-5 h-5" />
+          <span className="hidden sm:inline">{showChat ? "关闭顾问" : "AI 顾问"}</span>
+        </Button>
+      </div>
 
       {showChat && (
         <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-background border-t rounded-t-xl shadow-lg max-h-[70vh] overflow-hidden">
