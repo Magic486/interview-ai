@@ -10,6 +10,8 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Send, Mic, MicOff, Loader2, User, Bot, AlertCircle } from "lucide-react";
 import type { InterviewConfig } from "@/types";
+import { MessageSpeakButton, TTSControls } from "@/components/interview/TTSControls";
+import { useInterviewTTS } from "@/hooks/useInterviewTTS";
 
 export interface ChatPanelHandle {
   sendMessage: (text: string) => void;
@@ -47,7 +49,10 @@ function getMessageText(msg: UIMessage): string {
 export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
   function ChatPanel({ interviewId, config, mode }, ref) {
   const [listening, setListening] = useState(false);
+  const [interimText, setInterimText] = useState("");
+  const [voiceWarning, setVoiceWarning] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const speechRef = useRef<InstanceType<typeof import("@/lib/speech").SpeechService> | null>(null);
 
   const transport = useMemo(
     () =>
@@ -64,6 +69,11 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     onError: (err) => {
       console.error("Chat error:", err);
     },
+  });
+  const tts = useInterviewTTS({
+    messages,
+    status,
+    getMessageText,
   });
 
   useImperativeHandle(ref, () => ({
@@ -113,24 +123,51 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
 
   const handleVoiceToggle = async () => {
     if (listening) {
+      speechRef.current?.stopRecognition();
       setListening(false);
+      setInterimText("");
       return;
     }
     try {
-      setListening(true);
       const { SpeechService } = await import("@/lib/speech");
-      const speech = new SpeechService();
-      const text = await speech.startRecognition("zh-CN");
-      const ta = document.querySelector<HTMLTextAreaElement>("#chat-input");
-      if (ta) {
-        ta.value = text;
-        handleSend(text);
-        ta.value = "";
+      if (!SpeechService.isRecognitionSupported()) {
+        setVoiceWarning("语音识别需要 HTTPS 环境,当前浏览器不支持");
+        setTimeout(() => setVoiceWarning(""), 4000);
+        return;
       }
-    } catch {
-      // 语音识别不支持
+
+      speechRef.current = new SpeechService();
+      setListening(true);
+      setVoiceWarning("");
+      setInterimText("");
+
+      const text = await speechRef.current.startRecognition(
+        "zh-CN",
+        (interim) => setInterimText(interim)
+      );
+
+      if (text) {
+        sendMessage({ text: text.trim() });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "未知错误";
+      let hint: string;
+      if (msg.includes("no-speech")) {
+        hint = "没听到声音,请靠近麦克风说话后重试";
+      } else if (msg.includes("network") || msg.includes("网络")) {
+        hint = "语音识别失败:网络问题,部署到服务器后可稳定使用";
+      } else if (msg.includes("not-allowed")) {
+        hint = "麦克风权限被拒绝,请在浏览器地址栏左侧允许麦克风";
+      } else if (msg.includes("浏览器不支持")) {
+        hint = "当前浏览器不支持语音识别,请使用 Chrome 或 Edge";
+      } else {
+        hint = `语音识别失败:${msg}`;
+      }
+      setVoiceWarning(hint);
+      setTimeout(() => setVoiceWarning(""), 6000);
     } finally {
       setListening(false);
+      setInterimText("");
     }
   };
 
@@ -142,6 +179,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
 
   return (
     <div className="flex flex-col h-full">
+      <div className="shrink-0 flex items-center justify-end gap-2 border-b bg-background/50 px-4 py-1.5">
+        <TTSControls variant="desktop" />
+      </div>
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {error && (
           <div className="flex items-center gap-2 text-destructive text-sm p-3 bg-destructive/10 rounded-lg">
@@ -165,14 +205,27 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
           </div>
         )}
 
-        {visibleMessages.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            role={msg.role}
-            content={getMessageText(msg)}
-            mode={mode}
-          />
-        ))}
+        {visibleMessages.map((msg, index) => {
+          const isInterviewer =
+            mode === "reversed" ? msg.role === "user" : msg.role === "assistant";
+          const isLatestVisibleMessage = index === visibleMessages.length - 1;
+          const showSpeakButton = tts.canShowSpeakButton(
+            msg,
+            isLatestVisibleMessage
+          );
+
+          return (
+            <MessageBubble
+              key={msg.id}
+              role={msg.role}
+              content={getMessageText(msg)}
+              isInterviewer={isInterviewer}
+              showSpeakButton={showSpeakButton}
+              isSpeaking={tts.isMessageSpeaking(msg.id)}
+              onSpeak={() => tts.speakMessage(msg)}
+            />
+          );
+        })}
 
         {isLoading && visibleMessages.length > 0 && (
           <div className="flex items-center gap-2 text-muted-foreground text-sm pl-2">
@@ -183,6 +236,18 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
 
         <div ref={messagesEndRef} />
       </div>
+
+      {interimText && (
+        <div className="px-4 py-1 text-xs text-muted-foreground text-center">
+          {interimText}
+        </div>
+      )}
+
+      {voiceWarning && (
+        <div className="px-4 py-1 text-xs text-destructive text-center">
+          {voiceWarning}
+        </div>
+      )}
 
       <div className="border-t p-4 bg-background">
         <div className="flex gap-2">
@@ -215,6 +280,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
               size="icon"
               variant={listening ? "default" : "outline"}
               onClick={handleVoiceToggle}
+              disabled={isLoading && !listening}
+              data-testid="voice-input-toggle"
             >
               {listening ? (
                 <MicOff className="h-4 w-4" />
@@ -232,16 +299,19 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
 function MessageBubble({
   role,
   content,
-  mode,
+  isInterviewer,
+  showSpeakButton,
+  isSpeaking,
+  onSpeak,
 }: {
   role: "user" | "assistant" | "system";
   content: string;
-  mode: "normal" | "reversed";
+  isInterviewer: boolean;
+  showSpeakButton?: boolean;
+  isSpeaking?: boolean;
+  onSpeak?: () => void;
 }) {
   if (role === "system" || !content) return null;
-
-  const isInterviewer =
-    mode === "reversed" ? role === "user" : role === "assistant";
 
   return (
     <div
@@ -262,18 +332,36 @@ function MessageBubble({
           <User className="h-4 w-4" />
         )}
       </div>
-      <Card
-        className={cn(
-          "p-3 text-sm leading-relaxed",
-          isInterviewer ? "bg-muted/50" : "bg-primary/5 border-primary/20"
+      <div className="flex flex-col">
+        <Card
+          className={cn(
+            "p-3 text-sm leading-relaxed",
+            isInterviewer ? "bg-muted/50" : "bg-primary/5 border-primary/20"
+          )}
+        >
+          {isInterviewer ? (
+            <MarkdownMessage content={content} />
+          ) : (
+            <p className="whitespace-pre-wrap">{content}</p>
+          )}
+        </Card>
+        {showSpeakButton && onSpeak && (
+          <div
+            className={cn(
+              "mt-1 flex items-center gap-1",
+              isInterviewer ? "justify-start" : "justify-end"
+            )}
+          >
+            <MessageSpeakButton
+              isCurrentlySpeaking={!!isSpeaking}
+              onClick={onSpeak}
+            />
+            <span className="text-xs text-muted-foreground">
+              {isSpeaking ? "朗读中" : "朗读"}
+            </span>
+          </div>
         )}
-      >
-        {isInterviewer ? (
-          <MarkdownMessage content={content} />
-        ) : (
-          <p className="whitespace-pre-wrap">{content}</p>
-        )}
-      </Card>
+      </div>
     </div>
   );
 }

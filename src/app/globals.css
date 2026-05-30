@@ -152,6 +152,15 @@
   }
 }
 
+@keyframes speaking-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.speaking-pulse {
+  animation: speaking-pulse 1.4s ease-in-out infinite;
+}
+
 /* 隐藏 Clerk 开发模式悬浮标记 */
 [class*="cl-"]:has(a[href*="clerk.com"]) {
   display: none !important;

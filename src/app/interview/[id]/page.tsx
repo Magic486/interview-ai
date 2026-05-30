@@ -30,6 +30,8 @@ import { COMPANY_FLOWS } from "@/config/interview-stages";
 import { loadInterviewContext } from "@/lib/interview-context";
 import { AlertTriangle, Clock, Code2, ListChecks, Loader2, MessageSquare, Mic, MicOff, Send } from "lucide-react";
 import type { CompanyFlow, InterviewConfig, InterviewMode } from "@/types";
+import { TTSControls, MessageSpeakButton } from "@/components/interview/TTSControls";
+import { useInterviewTTS } from "@/hooks/useInterviewTTS";
 
 type MobilePanel = "chat" | "code" | "progress";
 const INIT_TRIGGER = "__INTERVIEW_START__";
@@ -505,6 +507,11 @@ function MobileInterviewWorkspace({
           label="进度"
           onClick={() => onActivePanelChange("progress")}
         />
+        {visiblePanel === "chat" && (
+          <div className="col-span-3 flex justify-end border-t pt-1">
+            <TTSControls variant="mobile" />
+          </div>
+        )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden">
@@ -698,6 +705,11 @@ const MobileChatPanel = forwardRef<ChatPanelHandle, {
   const [interimText, setInterimText] = useState("");
   const [voiceWarning, setVoiceWarning] = useState("");
   const speechRef = useRef<InstanceType<typeof import("@/lib/speech").SpeechService> | null>(null);
+  const tts = useInterviewTTS({
+    messages,
+    status,
+    getMessageText: getMobileMessageText,
+  });
 
   const isLoading = status === "streaming" || status === "submitted";
   const visibleMessages = messages.filter((msg) => getMobileMessageText(msg) !== INIT_TRIGGER);
@@ -741,12 +753,20 @@ const MobileChatPanel = forwardRef<ChatPanelHandle, {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "未知错误";
-      const isAbortError = msg.includes("aborted") || msg.includes("not-allowed");
-      const hint = isAbortError
-        ? "语音识别需要 HTTPS 环境，本地 HTTP 测试不支持，部署到服务器后可正常使用"
-        : `语音识别失败：${msg}`;
+      let hint: string;
+      if (msg.includes("no-speech")) {
+        hint = "没听到声音，请靠近麦克风说话后重试";
+      } else if (msg.includes("network") || msg.includes("网络")) {
+        hint = "语音识别失败：网络问题，部署到服务器后可稳定使用";
+      } else if (msg.includes("not-allowed") || msg.includes("aborted")) {
+        hint = "麦克风权限被拒绝或语音识别被中断，请检查浏览器设置";
+      } else if (msg.includes("浏览器不支持")) {
+        hint = "当前浏览器不支持语音识别，请使用 Chrome 或 Edge";
+      } else {
+        hint = `语音识别失败：${msg}`;
+      }
       setVoiceWarning(hint);
-      setTimeout(() => setVoiceWarning(""), 5000);
+      setTimeout(() => setVoiceWarning(""), 6000);
     } finally {
       setListening(false);
       setInterimText("");
@@ -775,14 +795,23 @@ const MobileChatPanel = forwardRef<ChatPanelHandle, {
             )}
           </div>
         ) : null}
-        {visibleMessages.map((msg) => (
-          <MobileMessageBubble
-            key={msg.id}
-            role={msg.role}
-            content={getMobileMessageText(msg)}
-            mode={mode}
-          />
-        ))}
+        {visibleMessages.map((msg, idx) => {
+          const isInterviewerMsg =
+            mode === "reversed" ? msg.role === "user" : msg.role === "assistant";
+          const isLastMsg = idx === visibleMessages.length - 1;
+          return (
+            <MobileMessageBubble
+              key={msg.id}
+              role={msg.role}
+              content={getMobileMessageText(msg)}
+              mode={mode}
+              showSpeakButton={tts.canShowSpeakButton(msg, isLastMsg)}
+              isInterviewer={isInterviewerMsg}
+              isSpeaking={tts.isMessageSpeaking(msg.id)}
+              onSpeak={() => tts.speakMessage(msg)}
+            />
+          );
+        })}
         {isLoading && visibleMessages.length > 0 ? (
           <div className="flex items-center gap-2 pl-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -815,6 +844,7 @@ const MobileChatPanel = forwardRef<ChatPanelHandle, {
           />
           <button
             type="button"
+            data-testid="voice-input-toggle"
             disabled={isLoading && !listening}
             onClick={handleVoiceToggle}
             className={`inline-flex size-11 shrink-0 items-center justify-center rounded-lg border touch-manipulation disabled:pointer-events-none disabled:opacity-50 ${
@@ -847,27 +877,47 @@ function MobileMessageBubble({
   role,
   content,
   mode,
+  showSpeakButton,
+  isSpeaking,
+  onSpeak,
+  isInterviewer,
 }: {
   role: "user" | "assistant" | "system";
   content: string;
   mode: "normal" | "reversed";
+  showSpeakButton?: boolean;
+  isSpeaking?: boolean;
+  onSpeak?: () => void;
+  isInterviewer?: boolean;
 }) {
   if (role === "system" || !content) return null;
-  const isInterviewer = mode === "reversed" ? role === "user" : role === "assistant";
+  const computedIsInterviewer =
+    isInterviewer ?? (mode === "reversed" ? role === "user" : role === "assistant");
 
   return (
-    <div className={`flex ${isInterviewer ? "justify-start" : "justify-end"}`}>
+    <div className={`flex flex-col ${computedIsInterviewer ? "items-start" : "items-end"}`}>
       <div
         className={`max-w-[92%] overflow-hidden break-words rounded-lg border p-3 text-sm leading-6 ${
-          isInterviewer ? "bg-muted/50" : "border-primary/20 bg-primary/5"
+          computedIsInterviewer ? "bg-muted/50" : "border-primary/20 bg-primary/5"
         }`}
       >
-        {isInterviewer ? (
+        {computedIsInterviewer ? (
           <MarkdownMessage content={content} />
         ) : (
           <p className="whitespace-pre-wrap">{content}</p>
         )}
       </div>
+      {showSpeakButton && (
+        <div className="mt-1 flex items-center gap-1 px-1">
+          <MessageSpeakButton
+            isCurrentlySpeaking={!!isSpeaking}
+            onClick={onSpeak ?? (() => {})}
+          />
+          <span className="text-[10px] text-muted-foreground">
+            {isSpeaking ? "朗读中" : "朗读"}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

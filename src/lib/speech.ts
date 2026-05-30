@@ -3,6 +3,58 @@
  * 浏览器原生语音识别和语音合成，零依赖
  */
 
+export const SENTENCE_BOUNDARY = /[。！？!?]|[.](?=\s|$)/;
+
+export function normalizeSpeechText(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, " 代码片段。")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/^\s*[-*]\s+/gm, "")
+    .replace(/[>#*_]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function splitSpeechText(text: string, maxLength = 180): string[] {
+  const normalized = normalizeSpeechText(text);
+  if (!normalized) return [];
+
+  const sentences =
+    normalized.match(/[^。！？!?.]+[。！？!?.]?/g)?.map((item) => item.trim()) ??
+    [normalized];
+  const chunks: string[] = [];
+  let current = "";
+
+  for (const sentence of sentences) {
+    if (!sentence) continue;
+
+    if (sentence.length > maxLength) {
+      if (current) {
+        chunks.push(current);
+        current = "";
+      }
+      for (let i = 0; i < sentence.length; i += maxLength) {
+        chunks.push(sentence.slice(i, i + maxLength));
+      }
+      continue;
+    }
+
+    const next = current ? `${current} ${sentence}` : sentence;
+    if (next.length > maxLength && current) {
+      chunks.push(current);
+      current = sentence;
+    } else {
+      current = next;
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks;
+}
+
 export class SpeechService {
   private recognition: SpeechRecognition | null = null;
   private synth: SpeechSynthesis;
@@ -33,18 +85,40 @@ export class SpeechService {
       this.recognition.lang = lang;
       this.recognition.interimResults = !!onInterim;
       this.recognition.maxAlternatives = 1;
+      this.recognition.continuous = false;
+
+      let settled = false;
+      let accumulatedFinal = "";
 
       this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-        if (event.results[0].isFinal) {
-          const transcript = event.results[0][0].transcript;
-          resolve(transcript);
-        } else if (onInterim) {
-          onInterim(event.results[0][0].transcript);
+        let interim = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const result = event.results[i];
+          const transcript = result[0]?.transcript ?? "";
+
+          if (result.isFinal) {
+            accumulatedFinal += transcript;
+          } else {
+            interim += transcript;
+          }
+        }
+
+        if (onInterim && interim) {
+          onInterim(interim);
         }
       };
 
       this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        if (settled) return;
+        settled = true;
         reject(new Error(`语音识别错误: ${event.error}`));
+      };
+
+      this.recognition.onend = () => {
+        if (settled) return;
+        settled = true;
+        resolve(accumulatedFinal);
       };
 
       this.recognition.start();
@@ -102,14 +176,17 @@ interface SpeechRecognition extends EventTarget {
   lang: string;
   interimResults: boolean;
   maxAlternatives: number;
+  continuous: boolean;
   start(): void;
   stop(): void;
   onresult: ((event: SpeechRecognitionEvent) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
 }
 
 interface SpeechRecognitionEvent {
   results: SpeechRecognitionResultList;
+  resultIndex: number;
 }
 
 interface SpeechRecognitionResultList {
