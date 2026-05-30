@@ -36,6 +36,7 @@ export default function ReviewPage() {
   const companyText = searchParams.get("company") || "目标公司";
   const isReversed = searchParams.get("mode") === "reversed";
   const stageIndex = searchParams.get("stage") || "";
+  const stageId = searchParams.get("stageId") || "";
   const nextStage = searchParams.get("nextStage") || "";
   const stageName = searchParams.get("stage") ? `第 ${Number(stageIndex) + 1} 轮` : "";
 
@@ -62,7 +63,7 @@ export default function ReviewPage() {
         const genRes = await fetch(`/api/interview/review/${id}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: stageIndex ? JSON.stringify({ stage: stageIndex }) : undefined,
+          body: stageId ? JSON.stringify({ stage: stageId }) : undefined,
         });
         if (!genRes.ok) {
           const errData = await genRes.json().catch(() => ({}));

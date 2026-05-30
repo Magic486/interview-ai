@@ -139,6 +139,7 @@ export default function InterviewPage() {
       role,
       company,
       stage: String(currentStageIndex),
+      stageId: flow.stages[currentStageIndex]?.id ?? "",
     });
     router.push(`/interview/review/${interviewId}?${reviewParams.toString()}`);
   }, [interviewId, mode, role, company, currentStageIndex, router]);
