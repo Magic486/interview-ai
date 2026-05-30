@@ -3,6 +3,14 @@ import { tool } from "ai";
 import { INTERVIEW_QUESTIONS, type InterviewQuestion } from "@/config/interview-questions";
 import { getRemoteQuestions } from "@/lib/ai/question-fetcher";
 
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 async function searchQuestions(params: {
   stage: string;
   company?: string;
@@ -28,9 +36,11 @@ async function searchQuestions(params: {
     );
   }
   if (params.company) {
-    const withCompany = results.filter((q) => q.company);
-    const withoutCompany = results.filter((q) => !q.company);
+    const withCompany = shuffle(results.filter((q) => q.company));
+    const withoutCompany = shuffle(results.filter((q) => !q.company));
     results = [...withCompany, ...withoutCompany];
+  } else {
+    results = shuffle(results);
   }
 
   return results.slice(0, params.limit ?? 5).map((q) => ({
