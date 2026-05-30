@@ -339,11 +339,7 @@ function MessageBubble({
             isInterviewer ? "bg-muted/50" : "bg-primary/5 border-primary/20"
           )}
         >
-          {isInterviewer ? (
-            <MarkdownMessage content={content} />
-          ) : (
-            <p className="whitespace-pre-wrap">{content}</p>
-          )}
+          <MarkdownMessage content={content} />
         </Card>
         {showSpeakButton && onSpeak && (
           <div

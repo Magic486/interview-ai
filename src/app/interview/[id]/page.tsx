@@ -141,9 +141,10 @@ export default function InterviewPage() {
       role,
       company,
       stage: String(currentStageIndex),
+      stageId: flow.stages[currentStageIndex]?.id ?? "",
     });
     router.push(`/interview/review/${interviewId}?${reviewParams.toString()}`);
-  }, [interviewId, mode, role, company, currentStageIndex, router]);
+  }, [interviewId, mode, role, company, currentStageIndex, flow.stages, router]);
 
   const handleToggleMode = useCallback(() => {
     setMode((current) => (current === "normal" ? "reversed" : "normal"));
@@ -901,11 +902,7 @@ function MobileMessageBubble({
           computedIsInterviewer ? "bg-muted/50" : "border-primary/20 bg-primary/5"
         }`}
       >
-        {computedIsInterviewer ? (
-          <MarkdownMessage content={content} />
-        ) : (
-          <p className="whitespace-pre-wrap">{content}</p>
-        )}
+        <MarkdownMessage content={content} />
       </div>
       {showSpeakButton && (
         <div className="mt-1 flex items-center gap-1 px-1">

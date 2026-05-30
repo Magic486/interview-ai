@@ -2,7 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { generateObject, generateText } from "ai";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { COMPANY_FLOWS } from "@/config/interview-stages";
 import {
@@ -74,18 +74,22 @@ export async function saveMessage(data: {
     role: data.role,
     content: data.content,
     stage: data.stage,
-    codeSnippet: data.codeSnippet || null,
-    score: data.score || null,
-    feedback: data.feedback || null,
+    codeSnippet: data.codeSnippet ?? null,
+    score: data.score ?? null,
+    feedback: data.feedback ?? null,
     createdAt: new Date(),
   });
 }
 
-export async function getMessages(interviewId: string) {
+export async function getMessages(interviewId: string, stage?: string) {
+  const whereClause = stage
+    ? and(eq(messages.interviewId, interviewId), eq(messages.stage, stage))
+    : eq(messages.interviewId, interviewId);
+
   return db
     .select()
     .from(messages)
-    .where(eq(messages.interviewId, interviewId))
+    .where(whereClause)
     .orderBy(messages.createdAt);
 }
 
@@ -229,9 +233,10 @@ export async function getLearningPath(pathId: string) {
 // ========== 复盘报告生成 ==========
 
 export async function generateReview(
-  interviewId: string
+  interviewId: string,
+  stage?: string,
 ): Promise<ReviewReport> {
-  const messageList = await getMessages(interviewId);
+  const messageList = await getMessages(interviewId, stage);
   const interviewRows = await db
     .select()
     .from(interviews)

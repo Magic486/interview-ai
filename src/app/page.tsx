@@ -1,20 +1,15 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Mic, BarChart3, RefreshCw, Briefcase, GraduationCap, Sparkles, MessageSquare } from "lucide-react";
+import { Mic, BarChart3, RefreshCw, Briefcase, GraduationCap, MessageSquare } from "lucide-react";
 
 export default function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero */}
-      <section className="relative py-24 lg:py-32 text-center px-4 overflow-hidden">
+      <section className="relative min-h-[calc(100dvh-3.5rem)] flex flex-col items-center justify-center text-center px-4 overflow-hidden">
         <div className="hero-glow" />
         <div className="relative z-10 max-w-3xl mx-auto">
-          <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm gap-1.5">
-            <Sparkles className="h-3.5 w-3.5" />
-            教育赛道 · 职业规划
-          </Badge>
           <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
             <span className="gradient-text">你的 AI 面试教练</span>
           </h1>

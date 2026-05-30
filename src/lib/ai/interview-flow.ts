@@ -3,6 +3,14 @@ import { tool } from "ai";
 import { INTERVIEW_QUESTIONS, type InterviewQuestion } from "@/config/interview-questions";
 import { getRemoteQuestions } from "@/lib/ai/question-fetcher";
 
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 async function searchQuestions(params: {
   stage: string;
   company?: string;
@@ -28,9 +36,11 @@ async function searchQuestions(params: {
     );
   }
   if (params.company) {
-    const withCompany = results.filter((q) => q.company);
-    const withoutCompany = results.filter((q) => !q.company);
+    const withCompany = shuffle(results.filter((q) => q.company));
+    const withoutCompany = shuffle(results.filter((q) => !q.company));
     results = [...withCompany, ...withoutCompany];
+  } else {
+    results = shuffle(results);
   }
 
   return results.slice(0, params.limit ?? 5).map((q) => ({
@@ -90,15 +100,43 @@ export const interviewTools = {
   }),
   advanceStage: tool({
     description:
-      "当当前阶段面试考察充分、可以结束时，推进到下一阶段。如果已经是最后一阶段，nextStage 设为 'completed'。调用后会返回新阶段信息，你可以据此调整面试内容。",
+      "当当前阶段面试考察充分、可以结束时，调用此工具生成阶段总结。传入 nextStage 指定下一个阶段 ID，或传入 'completed' 表示整场面试结束。调用后会返回阶段总结信息，你可以在对话中告知候选人。",
     inputSchema: advanceStageSchema,
-    execute: async ({ nextStage, summary }) => ({
-      advanced: true,
-      fromStage: "已推进",
-      toStage: nextStage,
-      summary,
-      note: nextStage === "completed" ? "面试已结束，给出最终评价" : `已进入 ${nextStage} 阶段，按新阶段要求出题`,
-    }),
+    execute: async ({ nextStage, summary }, { messages }) => {
+      if (nextStage === "completed") {
+        let evalCount = 0;
+        for (const msg of messages) {
+          if (msg.role !== "assistant") continue;
+          const content = msg.content;
+          if (typeof content === "string") continue;
+          for (const part of content) {
+            const p = part as { type: string; toolName?: string };
+            if (p.type === "tool-call" && p.toolName === "evaluateAnswer") {
+              evalCount++;
+            }
+          }
+        }
+        const MIN_EVALUATIONS = 5;
+        if (evalCount < MIN_EVALUATIONS) {
+          return {
+            advanced: false,
+            fromStage: "未推进",
+            toStage: "未改变",
+            summary,
+            note: `⚠️ 当前至少需要完成 ${MIN_EVALUATIONS} 轮问答才能结束面试（目前已评估 ${evalCount} 题，还差 ${MIN_EVALUATIONS - evalCount} 题）。请继续提问或从题库选题深入考察。`,
+          };
+        }
+      }
+      return {
+        advanced: true,
+        fromStage: "已推进",
+        toStage: nextStage,
+        summary,
+        note: nextStage === "completed"
+          ? "整场面试已全部结束。请在对话中总结整场表现，并提示候选人点击【结束面试】按钮查看复盘报告。"
+          : `本轮面试考察充分。请在对话中总结本轮表现，并提示候选人点击【结束面试】按钮查看本轮复盘。`,
+      };
+    },
   }),
   evaluateAnswer: tool({
     description:
